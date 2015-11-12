@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
 library(lubridate)
+library(sqldf)
 ```
 
 ### Overview
@@ -116,17 +117,6 @@ hist(stepsByDate$sum_steps,
 ```
 
 
-```{r , echo=TRUE, fig.height = 3.5, fig.width = 3.5}
-ggplot(stepsByDate, aes(x=sum_steps)) + 
-    geom_histogram(binwidth=2000,
-            colour="black", fill="blue"
-            ) +
-        xlab("Steps") + 
-        ggtitle("Histogram of Daily Steps")
-
-```
-
-
 ```{r, echo = TRUE }
 datasetMean <- mean(stepsByDate$sum_steps)
 datasetMedian <- median(stepsByDate$sum_steps)
@@ -138,7 +128,7 @@ The median of the total number of steps taken per day is `r as.character(signif(
 
 ### What is the average daily activity pattern?
 
-Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+Use dplyr to create summaries by 5 minute interva:
 
 
 ```{r, echo = TRUE }
@@ -182,12 +172,22 @@ The data set after removing the incomplete cases had `r cc_rowCnt` rows.
 
 This is a difference of 'r incomplete` records
 
-The NA records in the original data set have been defaulted to use the mean for the particular 5 minute interval and saved as the data frame activityImputed.
+The NA records in the original data set have been defaulted to use the mean for the particular 5 minute interval and saved as the data frame activityImputed. The package sqldf was used.
 
 
 
 ```{r, echo = TRUE }
-activityImputed <- activity
+activityImputed1 <- left_join(activity, stepsByInterval, by = "interval")
+
+activityImputed2 <- sqldf(c("update activityImputed1 set steps = mean_steps where steps  is null", "select * from main.activityImputed1"))
+
+
+summary(activityImputed2)
+
+
+
+
+
 
 ```
 
