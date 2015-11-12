@@ -1,0 +1,221 @@
+---
+title: "PA1_template"
+author: "treepruner"
+date: "November 2, 2015"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r , echo = FALSE, message = FALSE}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+```
+
+### Overview
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+
+The variables included in this dataset are:
+
+ * steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+
+ * date: The date on which the measurement was taken in YYYY-MM-DD format
+
+ * interval: Identifier for the 5-minute interval in which measurement was taken
+
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+
+
+#### Get Data
+
+```{r , echo = TRUE, message = FALSE}
+fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+download.file(fileURL, "./proj1/repdata%2Fdata%2Factivity.zip", method = "curl")
+unzip(zipfile = "repdata%2Fdata%2Factivity.zip")
+dir()
+activity <- read.csv("./proj1/activity.csv")
+```
+
+#### Exploratory Analyses
+
+Display the size of the data frame and some sample records that aren't NA.
+
+ * look at summaries
+ * check for missing data
+ * create exploratory plots
+ * perform exploratory analyses 
+
+```{r , echo = TRUE}
+activity_rowCnt <-nrow(activity)
+str(activity)
+head(activity, n = 5)
+tail(activity, n = 5)
+activity[5000:5005,]
+```
+
+```{r , echo = TRUE}
+summary(activity)
+```
+
+table(activity$modDate, activity$steps)
+
+```{r , echo = TRUE}
+plot(activity$date, activity$steps)
+```
+
+
+
+#### Clean and Preprocess Data
+
+Retain only the completed cases in a new data frame to resolve the NA issue. 
+
+```{r , echo = TRUE}
+cc <-activity[complete.cases(activity),]
+cc_rowCnt <- nrow(cc)
+incomplete <- activity_rowCnt - cc_rowCnt
+```
+
+
+The date is currently a factor and needs to be converted to a date.
+
+```{r , echo = TRUE}
+cc$modDate <- as.Date(cc$date)
+str(cc)
+```
+
+
+
+#### What is mean total number of steps taken per day?
+
+dplyr is the most understandable and easiest way to do this:
+
+```{r, echo = TRUE }
+stepsByDate <- 
+        cc %>% 
+        group_by(modDate) %>% 
+        summarise(n = n(), sum_steps = sum(steps) , mean_steps = mean(steps))
+
+stepsByDate
+```
+
+
+
+#### Histogram of Steps by Date
+
+```{r , echo=TRUE, fig.height = 3.5, fig.width = 3.5}
+hist(stepsByDate$sum_steps,
+     xlab = "Steps",
+     breaks = 10,
+     main = "Histogram of Daily Steps"
+     )
+```
+
+
+```{r , echo=TRUE, fig.height = 3.5, fig.width = 3.5}
+ggplot(stepsByDate, aes(x=sum_steps)) + 
+    geom_histogram(binwidth=2000,
+            colour="black", fill="blue"
+            ) +
+        xlab("Steps") + 
+        ggtitle("Histogram of Daily Steps")
+
+```
+
+
+```{r, echo = TRUE }
+datasetMean <- mean(stepsByDate$sum_steps)
+datasetMedian <- median(stepsByDate$sum_steps)
+```
+
+The mean of the total number of steps taken per day is `r as.character(signif(datasetMean,7))`.
+
+The median of the total number of steps taken per day is `r as.character(signif(datasetMedian,7))`.
+
+### What is the average daily activity pattern?
+
+Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+
+```{r, echo = TRUE }
+stepsByInterval <- 
+        cc %>% 
+        group_by(interval) %>% 
+        summarise(n = n(), sum_steps = sum(steps) , mean_steps = mean(steps))
+
+stepsByInterval
+```
+
+
+
+#### Times Series Plot
+
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r, echo = TRUE}
+stepsByInterval[which(stepsByInterval$mean_steps == max(stepsByInterval$mean_steps)),]
+
+maxInterval <- stepsByInterval[which(stepsByInterval$mean_steps == max(stepsByInterval$mean_steps)),1]
+
+```
+
+
+```{r, echo = TRUE, fig.height=3.5, fig.width = 3.5 }
+plot(stepsByInterval$interval, stepsByInterval$mean_steps,
+    type = "l",
+    ylab = "Mean Steps",
+    xlab = "Interval")
+    abline(v = maxInterval, col = "red")
+    
+
+```
+
+
+### Impute Missing Values
+
+The original dataset had `r activity_rowCnt` rows. 
+The data set after removing the incomplete cases had `r cc_rowCnt` rows.
+
+This is a difference of 'r incomplete` records
+
+The NA records in the original data set have been defaulted to use the mean for the particular 5 minute interval and saved as the data frame activityImputed.
+
+
+
+```{r, echo = TRUE }
+activityImputed <- activity
+
+```
+
+Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+
+```{r, echo = TRUE }
+
+```
+
+
+
+### Are there differences in activity patterns between weekdays and weekends?
+
+For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
+
+Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+
+```{r, echo = TRUE }
+
+```
+
+Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+
+#### Panel Plot of Avg Steps Taken pw
+
+
+```{r, echo = TRUE }
+
+```
+
