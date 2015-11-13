@@ -11,14 +11,15 @@ rm(list = ls())
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r , echo = FALSE, message = FALSE}
+```{r load_packages, echo = FALSE, message = FALSE}
 library(dplyr)
 library(ggplot2)
-library(lubridate)
 library(sqldf)
+library(lubridate)
+library(mosaic)
 ```
 
-### Overview
+#### Overview
 
 This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
 
@@ -36,12 +37,13 @@ The dataset is stored in a comma-separated-value (CSV) file and there are a tota
 
 #### Get Data
 
-```{r , echo = TRUE, message = FALSE}
+```{r get_data, echo = TRUE, message = FALSE}
 fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
 download.file(fileURL, "./proj1/repdata%2Fdata%2Factivity.zip", method = "curl")
 unzip(zipfile = "repdata%2Fdata%2Factivity.zip")
 dir()
 activity <- read.csv("./proj1/activity.csv")
+
 ```
 
 #### Exploratory Analyses
@@ -53,20 +55,18 @@ Display the size of the data frame and some sample records that aren't NA.
  * create exploratory plots
  * perform exploratory analyses 
 
-```{r , echo = TRUE}
+```{r explor_data, echo = TRUE}
 activity_rowCnt <-nrow(activity)
 str(activity)
 head(activity, n = 5)
 tail(activity, n = 5)
 activity[5000:5005,]
-```
 
-```{r , echo = TRUE}
 summary(activity)
 ```
 
 
-```{r , echo = TRUE}
+```{r date_steps_plot, echo = TRUE}
 plot(activity$date, activity$steps)
 ```
 
@@ -74,17 +74,26 @@ plot(activity$date, activity$steps)
 
 #### Clean and Preprocess Data
 
-The date is currently a factor and needs to be converted to a date.
+The date is currently a factor and needs to be converted to a date.Use dplyr and mosaic packages to create a new factor variable to indicate weekend or weekday.
 
-```{r , echo = TRUE}
+
+```{r date_cleanup, echo = TRUE}
 activity$modDate <- as.Date(activity$date)
-str(activity)
+
+weekend <-c("Saturday", "Sunday")
+
+activity <- mutate(activity,
+  dayType = derivedFactor(
+ "weekend" = (weekdays(activity$modDate) %in% weekend),
+ .method = "first",
+ .default = "weekday"
+))
 ```
 
 
 Retain only the completed cases in a new data frame to resolve the NA issue. 
 
-```{r , echo = TRUE}
+```{r incomplete_cases, echo = TRUE}
 cc <-activity[complete.cases(activity),]
 cc_rowCnt <- nrow(cc)
 incomplete <- activity_rowCnt - cc_rowCnt
@@ -95,19 +104,17 @@ incomplete <- activity_rowCnt - cc_rowCnt
 
 dplyr is the most understandable and easiest way to do this:
 
-```{r, echo = TRUE }
+```{r cc_stepsByDate, echo = TRUE }
 stepsByDate <- 
         cc %>% 
         group_by(modDate) %>% 
         summarise(n_date = n(), sum_dateSteps = sum(steps) , mean_dateSteps = mean(steps))
-
-stepsByDate
 ```
 
 
 #### Histogram of Complete Case Steps by Date
 
-```{r , echo=TRUE, fig.height = 3.5, fig.width = 3.5}
+```{r cc_stepsByDate_histogram, echo=TRUE, fig.height = 3.5, fig.width = 3.5}
 hist(stepsByDate$sum_dateSteps,
      xlab = "Steps",
      breaks = 10,
@@ -116,7 +123,7 @@ hist(stepsByDate$sum_dateSteps,
 ```
 
 
-```{r, echo = TRUE }
+```{r cc_stats, echo = TRUE }
 datasetMean <- mean(stepsByDate$sum_dateSteps)
 datasetMedian <- median(stepsByDate$sum_dateSteps)
 ```
@@ -130,13 +137,11 @@ The median of the total number of steps for complete cases taken per day is `r a
 Use dplyr to create summaries by 5 minute interval:
 
 
-```{r, echo = TRUE }
+```{r cc_stepsByInterval, echo = TRUE }
 stepsByInterval <- 
         cc %>% 
         group_by(interval) %>% 
         summarise(n_interval = n(), sum_intervalSteps = sum(steps) , mean_intervalSteps = mean(steps))
-
-stepsByInterval
 ```
 
 
@@ -145,7 +150,7 @@ stepsByInterval
 
 Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
-```{r, echo = TRUE}
+```{r cc_interval_stats, echo = TRUE}
 stepsByInterval[which(stepsByInterval$mean_intervalSteps == max(stepsByInterval$mean_intervalSteps)),]
 
 maxInterval <- stepsByInterval[which(stepsByInterval$mean_intervalSteps == max(stepsByInterval$mean_intervalSteps)),1]
@@ -153,7 +158,7 @@ maxInterval <- stepsByInterval[which(stepsByInterval$mean_intervalSteps == max(s
 ```
 
 
-```{r, echo = TRUE, fig.height=3.5, fig.width = 3.5 }
+```{r cc_interval_plot, echo = TRUE, fig.height=3.5, fig.width = 3.5 }
 plot(stepsByInterval$interval, stepsByInterval$mean_intervalSteps,
     type = "l",
     ylab = "Mean Steps",
@@ -175,7 +180,7 @@ The NA records in the original data set have been defaulted to use the mean for 
 
 
 
-```{r, echo = TRUE }
+```{r impute, echo = TRUE }
 activityImputed1 <- sqldf( 
         "select a.*, i.mean_intervalSteps, i.sum_intervalSteps    
         from activity a join stepsByInterval i on a.interval = i.interval")
@@ -189,19 +194,18 @@ summary(activityImputed2)
 
 #### Summarize the Imputed File
 
-```{r, echo = TRUE }
+```{r imputedStepsByDate, echo = TRUE }
 imputedStepsByDate <- 
         activityImputed2 %>% 
         group_by(modDate) %>% 
         summarise(n_date = n(), sum_dateSteps = sum(steps) , mean_dateSteps = mean(steps))
 
-imputedStepsByDate
 ```
 
 
 Make a histogram of the steps by day including the imputed values
 
-```{r , echo=TRUE, fig.height = 3.5, fig.width = 3.5}
+```{r imputedStepsByDate_histogram, echo=TRUE, fig.height = 3.5, fig.width = 3.5}
 hist(imputedStepsByDate$sum_dateSteps,
      xlab = "Steps",
      breaks = 10,
@@ -211,12 +215,11 @@ hist(imputedStepsByDate$sum_dateSteps,
 
 
 
-```{r, echo = TRUE }
+```{r imputedStepsByDate_stats, echo = TRUE }
 imputedDatasetMean <- mean(imputedStepsByDate$sum_dateSteps)
 imputedDatasetMedian <- median(imputedStepsByDate$sum_dateSteps)
 
 mean_diff <- datasetMean - imputedDatasetMean
-
 median_diff <- datasetMedian - imputedDatasetMedian
 ```
 
@@ -231,24 +234,29 @@ The median changed by `r as.character(signif(median_diff,7))`
 
 ### Are there differences in activity patterns between weekdays and weekends?
 
-For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
-
-Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
-
-```{r, echo = TRUE }
-weekend <-c("Saturday", "Sunday")
-
-mutate(imputedStepsByDate,
-       dayType = ifelse(weekdays(imputedStepsByDate$modDate) %in% weekend, 'weekend', 'weekday'))      
-              
-```
 
 Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
 
-#### Panel Plot of Avg Steps Taken pw
+
+```{r imputedStepsByDayType, echo = TRUE }
+imputedStepsByDayType <- 
+        activityImputed2 %>% 
+        group_by(dayType) %>% 
+        summarise(n_date = n(), sum_dayTypeSteps = sum(steps) , mean_dayTypeSteps = mean(steps))
+
+```
 
 
-```{r, echo = TRUE }
+
+
+#### Panel Plot of Avg Steps Taken 
+
+
+```{r imputed_dayType_plot, echo = TRUE }
+xyplot(imputedStepsByDayType$interval ~  imputedStepsByDayType$mean_intervalSteps | imputedStepsByDayType$dayType,
+    type = "l",
+    ylab = "Mean Steps",
+    xlab = "Interval")
 
 
 ```
