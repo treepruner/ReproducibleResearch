@@ -5,6 +5,8 @@ date: "November 2, 2015"
 output: html_document
 ---
 
+rm(list = ls())
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -63,7 +65,6 @@ activity[5000:5005,]
 summary(activity)
 ```
 
-table(activity$modDate, activity$steps)
 
 ```{r , echo = TRUE}
 plot(activity$date, activity$steps)
@@ -72,6 +73,14 @@ plot(activity$date, activity$steps)
 
 
 #### Clean and Preprocess Data
+
+The date is currently a factor and needs to be converted to a date.
+
+```{r , echo = TRUE}
+activity$modDate <- as.Date(activity$date)
+str(activity)
+```
+
 
 Retain only the completed cases in a new data frame to resolve the NA issue. 
 
@@ -82,16 +91,7 @@ incomplete <- activity_rowCnt - cc_rowCnt
 ```
 
 
-The date is currently a factor and needs to be converted to a date.
-
-```{r , echo = TRUE}
-cc$modDate <- as.Date(cc$date)
-str(cc)
-```
-
-
-
-#### What is mean total number of steps taken per day?
+#### What is mean total number of steps taken per day for complete cases?
 
 dplyr is the most understandable and easiest way to do this:
 
@@ -99,43 +99,42 @@ dplyr is the most understandable and easiest way to do this:
 stepsByDate <- 
         cc %>% 
         group_by(modDate) %>% 
-        summarise(n = n(), sum_steps = sum(steps) , mean_steps = mean(steps))
+        summarise(n_date = n(), sum_dateSteps = sum(steps) , mean_dateSteps = mean(steps))
 
 stepsByDate
 ```
 
 
-
-#### Histogram of Steps by Date
+#### Histogram of Complete Case Steps by Date
 
 ```{r , echo=TRUE, fig.height = 3.5, fig.width = 3.5}
-hist(stepsByDate$sum_steps,
+hist(stepsByDate$sum_dateSteps,
      xlab = "Steps",
      breaks = 10,
-     main = "Histogram of Daily Steps"
+     main = "Histogram of Complete Cases Daily Steps"
      )
 ```
 
 
 ```{r, echo = TRUE }
-datasetMean <- mean(stepsByDate$sum_steps)
-datasetMedian <- median(stepsByDate$sum_steps)
+datasetMean <- mean(stepsByDate$sum_dateSteps)
+datasetMedian <- median(stepsByDate$sum_dateSteps)
 ```
 
-The mean of the total number of steps taken per day is `r as.character(signif(datasetMean,7))`.
+The mean of the total number of steps for complete cases taken per day is `r as.character(signif(datasetMean,7))`.
 
-The median of the total number of steps taken per day is `r as.character(signif(datasetMedian,7))`.
+The median of the total number of steps for complete cases taken per day is `r as.character(signif(datasetMedian,7))`.
 
-### What is the average daily activity pattern?
+### What is the average daily activity pattern for complete cases?
 
-Use dplyr to create summaries by 5 minute interva:
+Use dplyr to create summaries by 5 minute interval:
 
 
 ```{r, echo = TRUE }
 stepsByInterval <- 
         cc %>% 
         group_by(interval) %>% 
-        summarise(n = n(), sum_steps = sum(steps) , mean_steps = mean(steps))
+        summarise(n_interval = n(), sum_intervalSteps = sum(steps) , mean_intervalSteps = mean(steps))
 
 stepsByInterval
 ```
@@ -147,20 +146,20 @@ stepsByInterval
 Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
 ```{r, echo = TRUE}
-stepsByInterval[which(stepsByInterval$mean_steps == max(stepsByInterval$mean_steps)),]
+stepsByInterval[which(stepsByInterval$mean_intervalSteps == max(stepsByInterval$mean_intervalSteps)),]
 
-maxInterval <- stepsByInterval[which(stepsByInterval$mean_steps == max(stepsByInterval$mean_steps)),1]
+maxInterval <- stepsByInterval[which(stepsByInterval$mean_intervalSteps == max(stepsByInterval$mean_intervalSteps)),1]
 
 ```
 
 
 ```{r, echo = TRUE, fig.height=3.5, fig.width = 3.5 }
-plot(stepsByInterval$interval, stepsByInterval$mean_steps,
+plot(stepsByInterval$interval, stepsByInterval$mean_intervalSteps,
     type = "l",
     ylab = "Mean Steps",
     xlab = "Interval")
     abline(v = maxInterval, col = "red")
-    
+ 
 
 ```
 
@@ -172,32 +171,62 @@ The data set after removing the incomplete cases had `r cc_rowCnt` rows.
 
 This is a difference of 'r incomplete` records
 
-The NA records in the original data set have been defaulted to use the mean for the particular 5 minute interval and saved as the data frame activityImputed. The package sqldf was used.
+The NA records in the original data set have been defaulted to use the mean for the particular 5 minute interval and saved as the data frame activityImputed. The package sqldf was used to join to the interval summary dataframe.
 
 
 
 ```{r, echo = TRUE }
-activityImputed1 <- left_join(activity, stepsByInterval, by = "interval")
+activityImputed1 <- sqldf( 
+        "select a.*, i.mean_intervalSteps, i.sum_intervalSteps    
+        from activity a join stepsByInterval i on a.interval = i.interval")
 
-activityImputed2 <- sqldf(c("update activityImputed1 set steps = mean_steps where steps  is null", "select * from main.activityImputed1"))
-
+activityImputed2 <- sqldf(c("update activityImputed1 set steps = mean_intervalSteps where steps  is null", "select * from main.activityImputed1"))
 
 summary(activityImputed2)
 
-
-
-
-
-
 ```
 
-Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+#### Summarize the Imputed File
+
+```{r, echo = TRUE }
+imputedStepsByDate <- 
+        activityImputed2 %>% 
+        group_by(modDate) %>% 
+        summarise(n_date = n(), sum_dateSteps = sum(steps) , mean_dateSteps = mean(steps))
+
+imputedStepsByDate
+```
+
+
+Make a histogram of the steps by day including the imputed values
+
+```{r , echo=TRUE, fig.height = 3.5, fig.width = 3.5}
+hist(imputedStepsByDate$sum_dateSteps,
+     xlab = "Steps",
+     breaks = 10,
+     main = "Histogram of Daily Steps with Imputed Values"
+     )
+```
+
 
 
 ```{r, echo = TRUE }
+imputedDatasetMean <- mean(imputedStepsByDate$sum_dateSteps)
+imputedDatasetMedian <- median(imputedStepsByDate$sum_dateSteps)
 
+mean_diff <- datasetMean - imputedDatasetMean
+
+median_diff <- datasetMedian - imputedDatasetMedian
 ```
 
+The mean of the total number of steps   taken per day is `r as.character(signif(imputedDatasetMean,7))` after imputation.
+
+The median of the total number of steps  taken per day is `r as.character(signif(imputedDatasetMedian,7))` after imputation.
+
+The mean changed by `r as.character(signif(mean_diff,7))`
+
+The median changed by `r as.character(signif(median_diff,7))`
 
 
 ### Are there differences in activity patterns between weekdays and weekends?
@@ -207,7 +236,11 @@ For this part the weekdays() function may be of some help here. Use the dataset 
 Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
 
 ```{r, echo = TRUE }
+weekend <-c("Saturday", "Sunday")
 
+mutate(imputedStepsByDate,
+       dayType = ifelse(weekdays(imputedStepsByDate$modDate) %in% weekend, 'weekend', 'weekday'))      
+              
 ```
 
 Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
@@ -216,6 +249,7 @@ Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minut
 
 
 ```{r, echo = TRUE }
+
 
 ```
 
