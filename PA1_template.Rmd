@@ -2,7 +2,9 @@
 title: "PA1_template"
 author: "treepruner"
 date: "November 2, 2015"
-output: html_document
+output: 
+        html_document:
+                keep_md: yes
 ---
 
 rm(list = ls())
@@ -11,13 +13,6 @@ rm(list = ls())
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r load_packages, echo = FALSE, message = FALSE}
-library(dplyr)
-library(ggplot2)
-library(sqldf)
-library(lubridate)
-library(mosaic)
-```
 
 #### Overview
 
@@ -35,33 +30,40 @@ The variables included in this dataset are:
 The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
 
 
+```{r load_packages, echo = TRUE, message = FALSE}
+library(dplyr)
+library(ggplot2)
+library(sqldf)
+library(lubridate)
+library(mosaic)
+```
+
+
+
+
 #### Get Data
 
-```{r get_data, echo = TRUE, message = FALSE}
+Download, unzip and read in the file.
+
+```{r get_data, echo = TRUE, message = FALSE, warning = FALSE}
 fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
 download.file(fileURL, "./proj1/repdata%2Fdata%2Factivity.zip", method = "curl")
 unzip(zipfile = "repdata%2Fdata%2Factivity.zip")
-dir()
 activity <- read.csv("./proj1/activity.csv")
-
 ```
 
 #### Exploratory Analyses
 
-Display the size of the data frame and some sample records that aren't NA.
-
- * look at summaries
+ * determine the # of records
+ * determine layout of file
  * check for missing data
+ * look at summaries
  * create exploratory plots
- * perform exploratory analyses 
 
 ```{r explor_data, echo = TRUE}
 activity_rowCnt <-nrow(activity)
 str(activity)
-head(activity, n = 5)
-tail(activity, n = 5)
 activity[5000:5005,]
-
 summary(activity)
 ```
 
@@ -71,10 +73,9 @@ plot(activity$date, activity$steps)
 ```
 
 
-
 #### Clean and Preprocess Data
 
-The date is currently a factor and needs to be converted to a date.Use dplyr and mosaic packages to create a new factor variable to indicate weekend or weekday.
+The date is currently a factor and needs to be converted to a date. Later in the analysis we need to determine a weekend day from a weekday. Use dplyr and mosaic packages to create a new factor variable to indicate weekend or weekday.
 
 
 ```{r date_cleanup, echo = TRUE}
@@ -91,7 +92,7 @@ activity <- mutate(activity,
 ```
 
 
-Retain only the completed cases in a new data frame to resolve the NA issue. 
+Create a new dataset with only the completed cases and keep track of the number of rows. 
 
 ```{r incomplete_cases, echo = TRUE}
 cc <-activity[complete.cases(activity),]
@@ -100,7 +101,7 @@ incomplete <- activity_rowCnt - cc_rowCnt
 ```
 
 
-#### What is mean total number of steps taken per day for complete cases?
+### What is mean total number of steps taken per day for complete cases?
 
 dplyr is the most understandable and easiest way to do this:
 
@@ -112,13 +113,13 @@ stepsByDate <-
 ```
 
 
-#### Histogram of Complete Case Steps by Date
+### Histogram of Complete Case Steps by Date
 
-```{r cc_stepsByDate_histogram, echo=TRUE, fig.height = 3.5, fig.width = 3.5}
+```{r cc_stepsByDate_histogram, echo=TRUE, fig.height = 4.5, fig.width = 4.5}
 hist(stepsByDate$sum_dateSteps,
      xlab = "Steps",
      breaks = 10,
-     main = "Histogram of Complete Cases Daily Steps"
+     main = "Complete Cases Daily Steps Histogram"
      )
 ```
 
@@ -146,7 +147,7 @@ stepsByInterval <-
 
 
 
-#### Times Series Plot
+### Times Series Plot
 
 Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
@@ -158,13 +159,14 @@ maxInterval <- stepsByInterval[which(stepsByInterval$mean_intervalSteps == max(s
 ```
 
 
-```{r cc_interval_plot, echo = TRUE, fig.height=3.5, fig.width = 3.5 }
+```{r cc_interval_plot, echo = TRUE, fig.height=4.5, fig.width = 4.5 }
 plot(stepsByInterval$interval, stepsByInterval$mean_intervalSteps,
     type = "l",
     ylab = "Mean Steps",
-    xlab = "Interval")
+    xlab = "Interval",
+    main = "Time Series of Complete Cases")
     abline(v = maxInterval, col = "red")
- 
+    
 
 ```
 
@@ -174,20 +176,18 @@ plot(stepsByInterval$interval, stepsByInterval$mean_intervalSteps,
 The original dataset had `r activity_rowCnt` rows. 
 The data set after removing the incomplete cases had `r cc_rowCnt` rows.
 
-This is a difference of 'r incomplete` records
+This is a difference of `r incomplete` records
 
 The NA records in the original data set have been defaulted to use the mean for the particular 5 minute interval and saved as the data frame activityImputed. The package sqldf was used to join to the interval summary dataframe.
 
 
 
-```{r impute, echo = TRUE }
+```{r impute, echo = TRUE, message = FALSE }
 activityImputed1 <- sqldf( 
         "select a.*, i.mean_intervalSteps, i.sum_intervalSteps    
         from activity a join stepsByInterval i on a.interval = i.interval")
 
 activityImputed2 <- sqldf(c("update activityImputed1 set steps = mean_intervalSteps where steps  is null", "select * from main.activityImputed1"))
-
-summary(activityImputed2)
 
 ```
 
@@ -205,11 +205,11 @@ imputedStepsByDate <-
 
 Make a histogram of the steps by day including the imputed values
 
-```{r imputedStepsByDate_histogram, echo=TRUE, fig.height = 3.5, fig.width = 3.5}
+```{r imputedStepsByDate_histogram, echo=TRUE, fig.height = 4.5, fig.width = 4.5}
 hist(imputedStepsByDate$sum_dateSteps,
      xlab = "Steps",
      breaks = 10,
-     main = "Histogram of Daily Steps with Imputed Values"
+     main = "Histogram of Daily Steps \n with Imputed Values"
      )
 ```
 
@@ -234,30 +234,32 @@ The median changed by `r as.character(signif(median_diff,7))`
 
 ### Are there differences in activity patterns between weekdays and weekends?
 
-
-Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
-
+Use dplyr to summarize the data by the new variable dayType and calculate the means.
 
 ```{r imputedStepsByDayType, echo = TRUE }
 imputedStepsByDayType <- 
         activityImputed2 %>% 
-        group_by(dayType) %>% 
+        group_by(interval,dayType) %>% 
         summarise(n_date = n(), sum_dayTypeSteps = sum(steps) , mean_dayTypeSteps = mean(steps))
 
 ```
 
 
+### Panel Plot of Avg Steps Taken by Day Type
 
 
-#### Panel Plot of Avg Steps Taken 
+```{r imputed_dayType_plot, echo = TRUE, fig.height = 4, fig.width = 8 }
 
-
-```{r imputed_dayType_plot, echo = TRUE }
-xyplot(imputedStepsByDayType$interval ~  imputedStepsByDayType$mean_intervalSteps | imputedStepsByDayType$dayType,
-    type = "l",
-    ylab = "Mean Steps",
-    xlab = "Interval")
-
+g <- ggplot(imputedStepsByDayType, aes(x = interval, y = mean_dayTypeSteps, color = dayType))
+g <- g + geom_line()
+g <- g + facet_grid(. ~ dayType)
+g <- g + ggtitle( "Average Steps by Day Type")
+g <- g + xlab ("Interval") + ylab("Average Steps") 
+g <- g + theme(legend.position = "bottom")
+g <- g +  geom_line(stat = "hline", yintercept = "max", color = "black")
+g <- g +  geom_line(stat = "hline", yintercept = "mean", color = "black", linetype = 2 )
+g 
 
 ```
 
+The solid black line indicates the maximum value. The dashed black line indicates the average.  The weekday steps have a much higher spike. The weekends have a slighly higher average. There are multiple spikes in for each day type and the spikes are higher on the weekend.
