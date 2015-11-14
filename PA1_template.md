@@ -289,6 +289,8 @@ The median changed by 124
 
 ### Are there differences in activity patterns between weekdays and weekends?
 
+Yes! 
+
 Use dplyr to summarize the data by the new variable dayType and calculate the means.
 
 
@@ -298,6 +300,8 @@ imputedStepsByDayType <-
         group_by(interval,dayType) %>% 
         summarise(n_date = n(), sum_dayTypeSteps = sum(steps) , mean_dayTypeSteps = mean(steps))
 ```
+
+
 
 
 ### Panel Plot of Avg Steps Taken by Day Type
@@ -318,4 +322,7 @@ g
 
 ![](PA1_template_files/figure-html/imputed_dayType_plot-1.png) 
 
-The solid black line indicates the maximum value. The dashed black line indicates the average.  The weekday steps have a much higher spike. The weekends have a slighly higher average. There are multiple spikes in for each day type and the spikes are higher on the weekend.
+The solid black line indicates the maximum value. The dashed black line indicates the average.  
+
+How are the weedays different from the weekend?
+The weekday steps have a much higher spike. The weekends have a slighly higher average. There are multiple spikes for each day type, but there is one weekday spike that is MUCH higher than the other weekday spikes.
