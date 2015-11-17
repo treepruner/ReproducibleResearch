@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+rm(list = ls())
 
 ```{r load_packages, echo = TRUE, message = FALSE}
 library(lubridate)
@@ -32,6 +33,19 @@ Additional inforation can be found at these websites:
 https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf
 
 https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf
+
+
+ [1] "STATE__"    "BGN_DATE"   "BGN_TIME"   "TIME_ZONE" 
+ [5] "COUNTY"     "COUNTYNAME" "STATE"      "EVTYPE"    
+ [9] "BGN_RANGE"  "BGN_AZI"    "BGN_LOCATI" "END_DATE"  
+[13] "END_TIME"   "COUNTY_END" "COUNTYENDN" "END_RANGE" 
+[17] "END_AZI"    "END_LOCATI" "LENGTH"     "WIDTH"     
+[21] "F"          "MAG"        "FATALITIES" "INJURIES"  
+[25] "PROPDMG"    "PROPDMGEXP" "CROPDMG"    "CROPDMGEXP"
+[29] "WFO"        "STATEOFFIC" "ZONENAMES"  "LATITUDE"  
+[33] "LONGITUDE"  "LATITUDE_E" "LONGITUDE_" "REMARKS"   
+[37] "REFNUM"   
+
 
 
 ### Executive summary
@@ -73,7 +87,7 @@ sd <- readRDS("./proj2/stormData.rds")
 
 
 
-```{r getSampleData, echo = TRUE}
+```{r saveSampleData, echo = TRUE}
 
 # save sample to work with
 sdSample <- stormData[sample(nrow(stormData), 2000), ]
@@ -92,7 +106,7 @@ rm(stormData)
 
 ```
 
-```{r reGetData, echo = TRUE}
+```{r GetSampleData, echo = TRUE}
 sd <- readRDS("./proj2/sdSample.rds")
 ```
 
@@ -162,12 +176,15 @@ The CROPDMG field is the numerical component of the crop damange and the CROPDMG
  * ?  = 0
  * anything else = millions
 
+The events in this file range from 1950 to 2011. To truely be comparable and understandable to the modern audience, the damage dollar amounts should be adjusted using an appropriate price index into current dollars in order to properly rank the financial impact of each event.
 
 ```{r fix_amts, echo = TRUE}
 sd1 <- sqldf( 
         "select  REFNUM
         , BGN_DATE
         , END_DATE
+        , EVTYPE
+        , EnvTypeGroup
         , FATALITIES
         , INJURIES
         , PROPDMG
@@ -194,13 +211,15 @@ sd1 <- sqldf(
          from sd
          where REFNUM <> 605943 "          )
 
+saveRDS(sd, "./proj2/sd.rds")
 rm(sd)
 ```         
          
 
+
 ```{r pop_stats, echo = TRUE}
-sd_pop_fatalities <- 
-        sd %>% 
+pop_fatalities <- 
+        sd1 %>% 
         group_by(EnvTypeGroup) %>% 
         summarise(n_date = n()
                   , sum_FATALITIES = sum(FATALITIES) 
@@ -211,44 +230,72 @@ sd_pop_fatalities <-
         )
 
 
-sd_pop_injuries <- 
-        sd %>% 
+
+pop_injuries <- 
+        sd1 %>% 
         group_by(EnvTypeGroup) %>% 
         summarise(n_date = n()
-                  , sum_INJURIES = sum(INJURIES) 
+                  , Injuries.Count = sum(INJURIES) 
                   , mean_INJURIES = mean(INJURIES)
                   , median_INJURIES = median(INJURIES)
                   , min_INJURIES = min(INJURIES)
-                  , max_INJURIES = max(INJURIES)
+                  , max_INJURIES = max(INJURIES) ) %>% 
+        arrange(desc(Injuries.Count))
+        
+
+
+
+```
+
+
+```{r HealthImpactTable, echo = TRUE,  results="asis"}
+fatalities <- xtable(sd_pop_fatalities )
+print(fatalities, type="html")
+
+
+injuries <- xtable(sd_pop_injuries )
+print(injuries, type="html")
+
+```
+
+
+```{r pop_stats, echo = TRUE,  results="asis"}
+sd_PropertyDamageAmt <- 
+        sd %>% 
+        group_by(EnvTypeGroup) %>% 
+        summarise(n_date = n()
+                  , sum_PropertyDamageAmt = sum(PropertyDamageAmt) 
+                  , mean_PropertyDamageAmt = mean(PropertyDamageAmt)
+                  , median_PropertyDamageAmt = median(PropertyDamageAmt)
+                  , min_PropertyDamageAmt = min(PropertyDamageAmt)
+                  , max_PropertyDamageAmt = max(PropertyDamageAmt)
+        )
+
+
+sd_CropDamageAmt <- 
+        sd %>% 
+        group_by(EnvTypeGroup) %>% 
+        summarise(n_date = n()
+                  , sum_CropDamageAmt = sum(CropDamageAmt) 
+                  , mean_CropDamageAmt = mean(CropDamageAmt)
+                  , median_CropDamageAmt = median(CropDamageAmt)
+                  , min_CropDamageAmt = min(CropDamageAmt)
+                  , max_CropDamageAmt = max(CropDamageAmt)
         )
 
 ```
 
 
-
-Population health related variables
-FATALITIES, INJURIES
-
-economic consequences related variables
-"PROPDMG"    "PROPDMGEXP" "CROPDMG"    "CROPDMGEXP"
+```{r cost_table, echo = TRUE,  results="asis"}
+PropertyDamageAmt <- xtable(PropertyDamageAmt )
+print(PropertyDamageAmt, type="html")
 
 
-[1] "STATE__"    "BGN_DATE"   "BGN_TIME"   "TIME_ZONE" 
- [5] "COUNTY"     "COUNTYNAME" "STATE"      "EVTYPE"    
- [9] "BGN_RANGE"  "BGN_AZI"    "BGN_LOCATI" "END_DATE"  
-[13] "END_TIME"   "COUNTY_END" "COUNTYENDN" "END_RANGE" 
-[17] "END_AZI"    "END_LOCATI" "LENGTH"     "WIDTH"     
-[21] "F"          "MAG"        "FATALITIES" "INJURIES"  
-[25] "PROPDMG"    "PROPDMGEXP" "CROPDMG"    "CROPDMGEXP"
-[29] "WFO"        "STATEOFFIC" "ZONENAMES"  "LATITUDE"  
-[33] "LONGITUDE"  "LATITUDE_E" "LONGITUDE_" "REMARKS"   
-[37] "REFNUM"   
+CropDamageAmt <- xtable(sd_CropDamageAmt )
+print(CropDamageAmt, type="html")
 
 
 
-```{r, echo = TRUE }
-
-```
 
 
 
@@ -294,8 +341,7 @@ economic consequences related variables
 
 
 
-#### Impute Missing Values
-N
+#### 
 
 
 ```{r, echo = TRUE }
