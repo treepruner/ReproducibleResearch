@@ -13,9 +13,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r load_packages, echo = TRUE, message = FALSE}
 library(lubridate)
 library(dplyr)
-library(ggplot2)
 library(sqldf)
 library(xtable)
+library(ggplot2)
+
+
 library(mosaic)
 ```
 
@@ -132,7 +134,7 @@ dup_refnum <- sqldf(
 
 dup_refnum
 
-sd1 <- sqldf( 
+sd <- sqldf( 
         "select distinct s.*   
          from sd s" 
          )
@@ -144,27 +146,57 @@ sd1 <- sqldf(
 
 ```
 
-unique(sd1$PROPDMGEXP)
+The PROPDMG field is the numerical component of the property damange and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows: 
+ * Bb = billions
+ * Mm = millions 
+ * Kk = thousands
+ * Hh = hundreds
+ * ?  = 0
+ * anything else = millions
+ 
+The CROPDMG field is the numerical component of the crop damange and the CROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows: 
+ * Bb = billions
+ * Mm = millions 
+ * Kk = thousands
+ * Hh = hundreds
+ * ?  = 0
+ * anything else = millions
 
-sqldf( 
+
+```{r fix_amts, echo = TRUE}
+sd1 <- sqldf( 
         "select  REFNUM
         , BGN_DATE
         , END_DATE
         , FATALITIES
         , INJURIES
         , PROPDMG
-        , case when PROPDMGEXP = 'B' the PROPDMG * 1000, else 
         , PROPDMGEXP
+        , case 
+                when upper(PROPDMGEXP) = 'B' then PROPDMG * 1000000000
+                when upper(PROPDMGEXP) = 'M' then PROPDMG * 1000000
+                when upper(PROPDMGEXP) = 'K' then PROPDMG * 1000
+                when upper(PROPDMGEXP) = 'H' then PROPDMG * 100
+                when upper(PROPDMGEXP) = '?' then PROPDMG * 0
+           else PROPDMG * 1000000
+           end as PropertyDamageAmt
         , CROPDMG
         , CROPDMGEXP
+        , case 
+                when upper(CROPDMGEXP) = 'B' then CROPDMG * 1000000000
+                when upper(CROPDMGEXP) = 'M' then CROPDMG * 1000000
+                when upper(CROPDMGEXP) = 'K' then CROPDMG * 1000
+                when upper(CROPDMGEXP) = 'H' then CROPDMG * 100
+                when upper(CROPDMGEXP) = '?' then CROPDMG * 0
+           else CROPDMG * 1000000
+           end as CropDamageAmt
         , REMARKS   
-         from sd1
-         where REFNUM = 567221 " 
-         )
+         from sd
+         where REFNUM <> 605943 "          )
 
-
- REFNUM == 605943 with erroneous data and 
- REFNUM == 567221 with the (duplicate) correct data.
+rm(sd)
+```         
+         
 
 ```{r pop_stats, echo = TRUE}
 sd_pop_fatalities <- 
