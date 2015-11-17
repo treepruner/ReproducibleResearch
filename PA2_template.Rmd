@@ -1,0 +1,302 @@
+---
+title: "Health and Economic Impacts of US Storms"
+author: "treepruner"
+date: "November 15, 2015"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load_packages, echo = TRUE, message = FALSE}
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(sqldf)
+library(xtable)
+library(mosaic)
+```
+
+
+
+### Synopsis
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+Additional inforation can be found at these websites:
+
+https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf
+
+https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf
+
+
+### Executive summary
+This analysis will address these questions: 
+
+ * Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+ * Across the United States, which types of events have the greatest economic consequences?
+
+### Data Processing
+
+#### Load Data
+
+
+
+```{r getData, echo = TRUE}
+fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+
+download.file(fileURL, "./proj2/repdata%2Fdata%2FStormData.csv.bz2")
+
+stormData <- read.csv("./proj2/repdata%2Fdata%2FStormData.csv.bz2")
+dir()
+
+# save original
+saveRDS(stormData, "./proj2/stormData.rds")
+
+str(stormData)
+names(stormData)
+head(stormData,1)
+envTypeList <- unique(stormData$EVTYPE) ## 985 types
+write.table(envTypeList, file = "./proj2/envTypeList.csv", col.names = TRUE)
+```
+
+
+```{r reGetData, echo = TRUE}
+sd <- readRDS("./proj2/stormData.rds")
+
+```
+
+
+
+```{r getSampleData, echo = TRUE}
+
+# save sample to work with
+sdSample <- stormData[sample(nrow(stormData), 2000), ]
+
+# save sample
+saveRDS(sdSample, "./proj2/sdSample.rds")
+
+str(sdSample)
+names(sdSample)
+head(sdSample,1)
+envTypeList <- unique(sdSample$EVTYPE) ## 985 types
+
+sd <- sdSample
+
+rm(stormData)
+
+```
+
+```{r reGetData, echo = TRUE}
+sd <- readRDS("./proj2/sdSample.rds")
+```
+
+
+
+
+
+#### Clean/Preprocess Data
+There are 985 unique EVTYPE codes, which is too large to use. The EVTYPE codes were groupd together into 38 groups. The new EnvTypeGroup variable was added to the dataset with the sqldf package.
+
+```{r addEnvTypeGroup, echo = TRUE}
+envTypeList <- read.csv("./proj2/envTypeList.csv",  sep = ",")
+
+
+sd <- sqldf( 
+        "select s.*, e.envTypeGroup   
+        from sd s join envTypeList e on s.EVTYPE = e.ENVTYPE")
+
+```
+
+Use lubridate to convert the dates that are factors into date fields.
+
+```{r date_cleanup, echo = TRUE}
+
+sd$BGN_DATE <- mdy_hms(sd$BGN_DATE)
+sd$END_DATE <- mdy_hms(sd$END_DATE)
+
+```
+
+
+Determine if the REFNUM identifies a unique row. Remove duplicate REFNUMs. This removeds records were exactly the same in all fieds. There is another set of records, REFNUM 605943 and 567221 that although they have different REFNUMs, appear to be for the same event. The REMARKS refer to millions in damage, so REFNUM 605943 which referred to billions, was removed.
+
+```{r dup_refnum_check, echo = TRUE}
+dup_refnum <- sqldf( 
+        "select s.REFNUM, count(*)   
+         from sd s 
+         group by s.REFNUM
+         having count(*) > 1")
+
+dup_refnum
+
+sd1 <- sqldf( 
+        "select distinct s.*   
+         from sd s" 
+         )
+
+# thes code also works and was actually faster
+# sd1 <- sd[!duplicated(sd),] 
+
+
+
+```
+
+unique(sd1$PROPDMGEXP)
+
+sqldf( 
+        "select  REFNUM
+        , BGN_DATE
+        , END_DATE
+        , FATALITIES
+        , INJURIES
+        , PROPDMG
+        , case when PROPDMGEXP = 'B' the PROPDMG * 1000, else 
+        , PROPDMGEXP
+        , CROPDMG
+        , CROPDMGEXP
+        , REMARKS   
+         from sd1
+         where REFNUM = 567221 " 
+         )
+
+
+ REFNUM == 605943 with erroneous data and 
+ REFNUM == 567221 with the (duplicate) correct data.
+
+```{r pop_stats, echo = TRUE}
+sd_pop_fatalities <- 
+        sd %>% 
+        group_by(EnvTypeGroup) %>% 
+        summarise(n_date = n()
+                  , sum_FATALITIES = sum(FATALITIES) 
+                  , mean_FATALITIES = mean(FATALITIES)
+                  , median_FATALITIES = median(FATALITIES)
+                  , min_FATALITIES = min(FATALITIES)
+                  , max_FATALITIES = max(FATALITIES)
+        )
+
+
+sd_pop_injuries <- 
+        sd %>% 
+        group_by(EnvTypeGroup) %>% 
+        summarise(n_date = n()
+                  , sum_INJURIES = sum(INJURIES) 
+                  , mean_INJURIES = mean(INJURIES)
+                  , median_INJURIES = median(INJURIES)
+                  , min_INJURIES = min(INJURIES)
+                  , max_INJURIES = max(INJURIES)
+        )
+
+```
+
+
+
+Population health related variables
+FATALITIES, INJURIES
+
+economic consequences related variables
+"PROPDMG"    "PROPDMGEXP" "CROPDMG"    "CROPDMGEXP"
+
+
+[1] "STATE__"    "BGN_DATE"   "BGN_TIME"   "TIME_ZONE" 
+ [5] "COUNTY"     "COUNTYNAME" "STATE"      "EVTYPE"    
+ [9] "BGN_RANGE"  "BGN_AZI"    "BGN_LOCATI" "END_DATE"  
+[13] "END_TIME"   "COUNTY_END" "COUNTYENDN" "END_RANGE" 
+[17] "END_AZI"    "END_LOCATI" "LENGTH"     "WIDTH"     
+[21] "F"          "MAG"        "FATALITIES" "INJURIES"  
+[25] "PROPDMG"    "PROPDMGEXP" "CROPDMG"    "CROPDMGEXP"
+[29] "WFO"        "STATEOFFIC" "ZONENAMES"  "LATITUDE"  
+[33] "LONGITUDE"  "LATITUDE_E" "LONGITUDE_" "REMARKS"   
+[37] "REFNUM"   
+
+
+
+```{r, echo = TRUE }
+
+```
+
+
+
+
+
+#### 
+
+```{r, echo = TRUE }
+
+```
+
+
+
+
+#### 
+
+
+```{r , echo=TRUE}
+
+```
+
+
+
+
+```{r, echo = TRUE }
+
+```
+
+
+
+#### 
+
+
+
+
+#### 
+
+```{r, echo = TRUE }
+
+```
+
+
+
+
+
+#### Impute Missing Values
+N
+
+
+```{r, echo = TRUE }
+
+```
+
+
+
+```{r, echo = TRUE }
+
+```
+
+
+
+#### 
+
+
+
+```{r, echo = TRUE }
+
+```
+
+
+
+#### 
+
+
+```{r, echo = TRUE }
+
+```
+
+### Results
+
+ 1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+ 2. Across the United States, which types of events have the greatest economic consequences?
