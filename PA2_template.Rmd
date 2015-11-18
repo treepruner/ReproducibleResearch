@@ -59,7 +59,7 @@ saveRDS(stormData, "./proj2/stormData.rds")
 
 #### Explore Data
 
-```{r getData, echo = TRUE}
+```{r exploreData, echo = TRUE}
 str(sd)
 head(sd, 1)
 ```
@@ -85,7 +85,7 @@ The EVTYPE codes were grouped together into 38 groups. This mapping was created 
 
 To make this reproducible by others, the entire mapping file has been read in to this documen in the appendix:
 
-```{r EnvTypeGroupTable, echo = TRUE}
+```{r EnvTypeGroupMapping, echo = TRUE}
 envTypeMapping <- read.csv("./proj2/envTypeList.csv",  sep = ",")[, 2:3]
 
 sd <- sqldf( 
@@ -101,7 +101,7 @@ Check for duplicates. Determine if the REFNUM identifies a unique row. Remove du
 
 There is another pair of records, REFNUM 605943 and 567221 that although they have different REFNUMs, appear to be for the same event. The REMARKS refer to millions in damage, so REFNUM 605943 which referred to billions in PROPDMGEXP, was removed.
 
-```{r dup_refnum_check, echo = TRUE}
+```{r duplicates, echo = TRUE}
 dup_refnum <- sqldf( 
         "select s.REFNUM, count(*)   
          from sd s 
@@ -236,7 +236,8 @@ ggplot( data = pop_fatalities_yr
         , y = Fatalities.Count , colour = EnvTypeGroup)) +
         geom_point() + 
         facet_grid(EnvTypeGroup ~ .) +
-        geom_line() 
+        geom_line()  + 
+        theme(legend.position = "bottom")
 ```
 
 
@@ -267,7 +268,7 @@ print(injuries, type="html")
 ```
 
 
-```{r fatalities_yr_stats, echo = TRUE}
+```{r injuries_yr_stats, echo = TRUE}
 pop_injuries_yr <- 
         sd1 %>% 
         mutate(Year = year(BGN_DATE)) %>% 
@@ -282,13 +283,15 @@ pop_injuries_yr <-
 
 Top fatality event groups by year show that the data may be incomplete or have quality issues since several of the high count event groups have no injuries prior to 1990
 
-```{r Figure 1, echo = TRUE}
+```{r Figure 2, echo = TRUE}
 ggplot( data = pop_injuries_yr
         , aes(x = Year
         , y = Injuries.Count, colour = EnvTypeGroup)) +
         geom_point() + 
         facet_grid(EnvTypeGroup ~ .) +
-        geom_line() 
+        geom_line() + 
+        theme(legend.position = "bottom")
+
 ```
 
 
@@ -380,22 +383,19 @@ print(CropDamageHigh, type="html")
 
 
 
+### Conclusion
+
+The United States population health is impacted by weather events in terms of both fatalities and injuries.
+
+The most fatalities occur due to tornados. Heat is the second most prevelant cause of fatalities.
+
+More injuries are incurred as a result of tornados more than any other event group.
+
+The greatest economic consequences are more difficult to determine due to the inconsistency of the cost unit coding. If ambiguous units are assumed to be in millions, extremes of water- drought and flooding are each more than twice as expensive as the next event group in the crop damage rankings.
+
+For property damages, hurricanes, tornados, and flooding are the most expensive event groups.
 
 
-
-
-
-
-
-
-
-
-
-`
-
-
-
- 
  
 ### Appendix
 
@@ -407,6 +407,7 @@ https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Event
 
 
 #### EVTYPE Grouping Table
+The mapping table needs to be extracted from the HTML/PDF and created locally to reproduce the results.
 
 ```{r EnvTypeGroupTable, echo = TRUE results="asis"}
 print(xtable(envTypeMapping) ,  type="html")                                                     
