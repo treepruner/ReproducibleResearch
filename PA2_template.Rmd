@@ -222,12 +222,12 @@ pop_fatalities <-
         sd1 %>% 
         group_by(EnvTypeGroup) %>% 
         summarise(n_date = n()
-                  , sum_FATALITIES = sum(FATALITIES) 
-                  , mean_FATALITIES = mean(FATALITIES)
-                  , median_FATALITIES = median(FATALITIES)
-                  , min_FATALITIES = min(FATALITIES)
-                  , max_FATALITIES = max(FATALITIES)
-        )
+                  , Fatalities.Count = sum(FATALITIES) 
+                  , Fatalities.Mean = mean(FATALITIES)
+                  , Fatalities.Median = median(FATALITIES)
+                  , Fatalities.Min = min(FATALITIES)
+                  , Fatalities.Max = max(FATALITIES)        ) %>% 
+        arrange(desc(Fatalities.Count))
 
 
 
@@ -236,10 +236,10 @@ pop_injuries <-
         group_by(EnvTypeGroup) %>% 
         summarise(n_date = n()
                   , Injuries.Count = sum(INJURIES) 
-                  , mean_INJURIES = mean(INJURIES)
-                  , median_INJURIES = median(INJURIES)
-                  , min_INJURIES = min(INJURIES)
-                  , max_INJURIES = max(INJURIES) ) %>% 
+                  , Injuries.Mean = mean(INJURIES)
+                  , Injuries.Median = median(INJURIES)
+                  , Injuries.Min = min(INJURIES)
+                  , Injuries.Max = max(INJURIES)    ) %>% 
         arrange(desc(Injuries.Count))
         
 
@@ -249,51 +249,52 @@ pop_injuries <-
 
 
 ```{r HealthImpactTable, echo = TRUE,  results="asis"}
-fatalities <- xtable(sd_pop_fatalities )
+fatalities <- xtable(pop_fatalities )
 print(fatalities, type="html")
 
 
-injuries <- xtable(sd_pop_injuries )
+injuries <- xtable(pop_injuries )
 print(injuries, type="html")
 
 ```
 
 
-```{r pop_stats, echo = TRUE,  results="asis"}
-sd_PropertyDamageAmt <- 
-        sd %>% 
+```{r pop_stats, echo = TRUE}
+cost_PropertyDamage <- 
+        sd1 %>% 
         group_by(EnvTypeGroup) %>% 
         summarise(n_date = n()
-                  , sum_PropertyDamageAmt = sum(PropertyDamageAmt) 
-                  , mean_PropertyDamageAmt = mean(PropertyDamageAmt)
-                  , median_PropertyDamageAmt = median(PropertyDamageAmt)
-                  , min_PropertyDamageAmt = min(PropertyDamageAmt)
-                  , max_PropertyDamageAmt = max(PropertyDamageAmt)
-        )
+                  , PropertyDamageAmt.Sum = sum(PropertyDamageAmt) 
+                  , PropertyDamageAmt.Mean = mean(PropertyDamageAmt)
+                  , PropertyDamageAmt.Median = median(PropertyDamageAmt)
+                  , PropertyDamageAmt.Min_ = min(PropertyDamageAmt)
+                  , PropertyDamageAmt.Max = max(PropertyDamageAmt)   ) %>% 
+        arrange(desc(PropertyDamageAmt.Sum))
 
 
-sd_CropDamageAmt <- 
-        sd %>% 
+cost_CropDamage <- 
+        sd1 %>% 
         group_by(EnvTypeGroup) %>% 
         summarise(n_date = n()
-                  , sum_CropDamageAmt = sum(CropDamageAmt) 
-                  , mean_CropDamageAmt = mean(CropDamageAmt)
-                  , median_CropDamageAmt = median(CropDamageAmt)
-                  , min_CropDamageAmt = min(CropDamageAmt)
-                  , max_CropDamageAmt = max(CropDamageAmt)
-        )
+                  , CropDamageAmt.Sum = sum(CropDamageAmt) 
+                  , CropDamageAmt.Mean = mean(CropDamageAmt)
+                  , CropDamageAmt.Median = median(CropDamageAmt)
+                  , CropDamageAmt.Min = min(CropDamageAmt)
+                  , CropDamageAmt.Max = max(CropDamageAmt)   ) %>% 
+        arrange(desc(CropDamageAmt.Sum))
+
 
 ```
 
 
 ```{r cost_table, echo = TRUE,  results="asis"}
-PropertyDamageAmt <- xtable(PropertyDamageAmt )
-print(PropertyDamageAmt, type="html")
+PropertyDamage <- xtable(cost_PropertyDamage )
+print(PropertyDamage, type="html")
 
 
-CropDamageAmt <- xtable(sd_CropDamageAmt )
-print(CropDamageAmt, type="html")
-
+CropDamage <- xtable(cost_CropDamage )
+print(CropDamage, type="html")
+```
 
 
 
