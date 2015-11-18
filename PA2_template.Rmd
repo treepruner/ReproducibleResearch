@@ -17,11 +17,8 @@ library(dplyr)
 library(sqldf)
 library(xtable)
 library(ggplot2)
-
-
 library(mosaic)
 ```
-
 
 
 ### Synopsis
@@ -35,30 +32,27 @@ https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf
 https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf
 
 
- [1] "STATE__"    "BGN_DATE"   "BGN_TIME"   "TIME_ZONE" 
- [5] "COUNTY"     "COUNTYNAME" "STATE"      "EVTYPE"    
- [9] "BGN_RANGE"  "BGN_AZI"    "BGN_LOCATI" "END_DATE"  
-[13] "END_TIME"   "COUNTY_END" "COUNTYENDN" "END_RANGE" 
-[17] "END_AZI"    "END_LOCATI" "LENGTH"     "WIDTH"     
-[21] "F"          "MAG"        "FATALITIES" "INJURIES"  
-[25] "PROPDMG"    "PROPDMGEXP" "CROPDMG"    "CROPDMGEXP"
-[29] "WFO"        "STATEOFFIC" "ZONENAMES"  "LATITUDE"  
-[33] "LONGITUDE"  "LATITUDE_E" "LONGITUDE_" "REMARKS"   
-[37] "REFNUM"   
-
-
 
 ### Executive summary
-This analysis will address these questions: 
+This analysis addressed these questions: 
 
- * Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+ * Across the United States, which types of events are most harmful with respect to population health?
+
+In total, the most fatalities occur due to tornados. Heat is the second most prevelant cause of fatalities
+
+Injuries are incurred as a result of tornados more than any other event group.
+
 
  * Across the United States, which types of events have the greatest economic consequences?
+
+For crop damages, extremes of water- drought and flooding are each more than twice as expensive as the next event group.
+
+For property damages, hurricanes, tornados, and flooding are the most expensive types of event group.
+
 
 ### Data Processing
 
 #### Load Data
-
 
 
 ```{r getData, echo = TRUE}
@@ -66,68 +60,23 @@ fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv
 
 download.file(fileURL, "./proj2/repdata%2Fdata%2FStormData.csv.bz2")
 
-stormData <- read.csv("./proj2/repdata%2Fdata%2FStormData.csv.bz2")
-dir()
+sd <- read.csv("./proj2/repdata%2Fdata%2FStormData.csv.bz2")
 
 # save original
 saveRDS(stormData, "./proj2/stormData.rds")
 
-str(stormData)
-names(stormData)
-head(stormData,1)
-envTypeList <- unique(stormData$EVTYPE) ## 985 types
-write.table(envTypeList, file = "./proj2/envTypeList.csv", col.names = TRUE)
-```
-
-
-```{r reGetData, echo = TRUE}
-sd <- readRDS("./proj2/stormData.rds")
 
 ```
 
 
 
-```{r saveSampleData, echo = TRUE}
-
-# save sample to work with
-sdSample <- stormData[sample(nrow(stormData), 2000), ]
-
-# save sample
-saveRDS(sdSample, "./proj2/sdSample.rds")
-
-str(sdSample)
-names(sdSample)
-head(sdSample,1)
-envTypeList <- unique(sdSample$EVTYPE) ## 985 types
-
-sd <- sdSample
-
-rm(stormData)
-
+#### Explore Data
+```{r getData, echo = TRUE}
+str(sd)
 ```
-
-```{r GetSampleData, echo = TRUE}
-sd <- readRDS("./proj2/sdSample.rds")
-```
-
-
-
-
 
 #### Clean/Preprocess Data
-There are 985 unique EVTYPE codes, which is too large to use. The EVTYPE codes were groupd together into 38 groups. The new EnvTypeGroup variable was added to the dataset with the sqldf package.
-
-```{r addEnvTypeGroup, echo = TRUE}
-envTypeList <- read.csv("./proj2/envTypeList.csv",  sep = ",")
-
-
-sd <- sqldf( 
-        "select s.*, e.envTypeGroup   
-        from sd s join envTypeList e on s.EVTYPE = e.ENVTYPE")
-
-```
-
-Use lubridate to convert the dates that are factors into date fields.
+lubridate was used to convert the dates that are factors into date fields.
 
 ```{r date_cleanup, echo = TRUE}
 
@@ -136,8 +85,26 @@ sd$END_DATE <- mdy_hms(sd$END_DATE)
 
 ```
 
+There are 985 unique EVTYPE codes, which is too large to use. The EVTYPE codes were grouped together into 38 groups. This mapping was created by extracting the 985 EVTYPE codes and manually assigning them to a group. The storm data file was joined to the mapping file on EVTYPE with sqldf and the new EnvTypeGroup code was added.
 
-Determine if the REFNUM identifies a unique row. Remove duplicate REFNUMs. This removeds records were exactly the same in all fieds. There is another set of records, REFNUM 605943 and 567221 that although they have different REFNUMs, appear to be for the same event. The REMARKS refer to millions in damage, so REFNUM 605943 which referred to billions, was removed.
+To make this reproducible, the mapping file has been read in to this document:
+
+
+```{r EnvTypeGroupTable, echo = TRUE results="asis"}
+envTypeMapping <- read.csv("./proj2/envTypeList.csv",  sep = ",")[, 2:3]
+print(xtable(envTypeMapping) ,  type="html")                                                               
+
+```
+
+```{r addEnvTypeGroup, echo = TRUE}
+sd <- sqldf( 
+        "select s.*, e.envTypeGroup   
+         from sd s join envTypeMapping e on s.EVTYPE = e.ENVTYPE")
+
+```
+
+
+Determine if the REFNUM identifies a unique row. Remove duplicate REFNUMs. This removed records were exactly the same in all fields so that only 1 record remained in the file. There is another pair of records, REFNUM 605943 and 567221 that although they have different REFNUMs, appear to be for the same event. The REMARKS refer to millions in damage, so REFNUM 605943 which referred to billions in PROPDMGEXP, was removed.
 
 ```{r dup_refnum_check, echo = TRUE}
 dup_refnum <- sqldf( 
@@ -160,7 +127,7 @@ sd <- sqldf(
 
 ```
 
-The PROPDMG field is the numerical component of the property damange and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows: 
+The PROPDMG field is the numerical component of the property damage and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows: 
  * Bb = billions
  * Mm = millions 
  * Kk = thousands
@@ -168,7 +135,7 @@ The PROPDMG field is the numerical component of the property damange and the PRO
  * ?  = 0
  * anything else = millions
  
-The CROPDMG field is the numerical component of the crop damange and the CROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows: 
+The CROPDMG field is the numerical component of the crop damage and the CROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows: 
  * Bb = billions
  * Mm = millions 
  * Kk = thousands
@@ -176,7 +143,11 @@ The CROPDMG field is the numerical component of the crop damange and the CROPDMG
  * ?  = 0
  * anything else = millions
 
-The events in this file range from 1950 to 2011. To truely be comparable and understandable to the modern audience, the damage dollar amounts should be adjusted using an appropriate price index into current dollars in order to properly rank the financial impact of each event.
+Another field was added to indicate the reliability of the numbers. The assumption about "anything else"  and "?" was coded as low reliability.
+
+The events in this file range from 1950 to 2011. To truely be comparable and understandable to the modern audience, the damage dollar amounts should be adjusted using an appropriate price index into current dollars in order to properly rank the financial impact of each event. This was deemed out of scope for our assignment.
+
+
 
 ```{r fix_amts, echo = TRUE}
 sd1 <- sqldf( 
@@ -207,21 +178,26 @@ sd1 <- sqldf(
                 when upper(CROPDMGEXP) = '?' then CROPDMG * 0
            else CROPDMG * 1000000
            end as CropDamageAmt
+        , case 
+                when upper(PROPDMGEXP) not in ('B', 'M', 'K', 'H') then 'Low'
+                when upper(CROPDMGEXP) not in ('B', 'M', 'K', 'H') then 'Low'
+          else 'High'
+          end as reliability
         , REMARKS   
          from sd
          where REFNUM <> 605943 "          )
 
 saveRDS(sd, "./proj2/sd.rds")
-rm(sd)
+
 ```         
          
-
+### Create Summaries by Event Group
 
 ```{r pop_stats, echo = TRUE}
 pop_fatalities <- 
         sd1 %>% 
         group_by(EnvTypeGroup) %>% 
-        summarise(n_date = n()
+        summarise(n = n()
                   , Fatalities.Count = sum(FATALITIES) 
                   , Fatalities.Mean = mean(FATALITIES)
                   , Fatalities.Median = median(FATALITIES)
@@ -230,11 +206,10 @@ pop_fatalities <-
         arrange(desc(Fatalities.Count))
 
 
-
 pop_injuries <- 
         sd1 %>% 
         group_by(EnvTypeGroup) %>% 
-        summarise(n_date = n()
+        summarise(n = n()
                   , Injuries.Count = sum(INJURIES) 
                   , Injuries.Mean = mean(INJURIES)
                   , Injuries.Median = median(INJURIES)
@@ -243,27 +218,27 @@ pop_injuries <-
         arrange(desc(Injuries.Count))
         
 
-
-
 ```
 
 
-```{r HealthImpactTable, echo = TRUE,  results="asis"}
-fatalities <- xtable(pop_fatalities )
-print(fatalities, type="html")
 
-
-injuries <- xtable(pop_injuries )
-print(injuries, type="html")
-
-```
-
-
-```{r pop_stats, echo = TRUE}
+```{r damage_stats, echo = TRUE}
 cost_PropertyDamage <- 
         sd1 %>% 
         group_by(EnvTypeGroup) %>% 
-        summarise(n_date = n()
+        summarise(n = n()
+                  , PropertyDamageAmt.Sum = sum(PropertyDamageAmt) 
+                  , PropertyDamageAmt.Mean = mean(PropertyDamageAmt)
+                  , PropertyDamageAmt.Median = median(PropertyDamageAmt)
+                  , PropertyDamageAmt.Min_ = min(PropertyDamageAmt)
+                  , PropertyDamageAmt.Max = max(PropertyDamageAmt)   ) %>% 
+        arrange(desc(PropertyDamageAmt.Sum))
+
+cost_PropertyDamage_High <- 
+        sd1 %>% 
+        filter(reliability == "High")  %>% 
+        group_by(EnvTypeGroup) %>% 
+        summarise(n = n()
                   , PropertyDamageAmt.Sum = sum(PropertyDamageAmt) 
                   , PropertyDamageAmt.Mean = mean(PropertyDamageAmt)
                   , PropertyDamageAmt.Median = median(PropertyDamageAmt)
@@ -283,51 +258,74 @@ cost_CropDamage <-
                   , CropDamageAmt.Max = max(CropDamageAmt)   ) %>% 
         arrange(desc(CropDamageAmt.Sum))
 
+cost_CropDamage_High <- 
+        sd1 %>% 
+        filter(reliability == "High")  %>% 
+        group_by(EnvTypeGroup) %>% 
+        summarise(n_date = n()
+                  , CropDamageAmt.Sum = sum(CropDamageAmt) 
+                  , CropDamageAmt.Mean = mean(CropDamageAmt)
+                  , CropDamageAmt.Median = median(CropDamageAmt)
+                  , CropDamageAmt.Min = min(CropDamageAmt)
+                  , CropDamageAmt.Max = max(CropDamageAmt)   ) %>% 
+        arrange(desc(CropDamageAmt.Sum))
+
+
+```
+
+### Results
+
+
+The fatalities from 1950 - 2011 are as follows:
+
+```{r FatalitiesTable, echo = TRUE,  results="asis"}
+fatalities <- xtable(pop_fatalities )
+print(fatalities, type="html")
+```
+
+The injuries from  1950 - 2011 are as follows:
+
+```{r InjuriesTable, echo = TRUE,  results="asis"}
+
+injuries <- xtable(pop_injuries )
+print(injuries, type="html")
 
 ```
 
 
-```{r cost_table, echo = TRUE,  results="asis"}
+
+Total property damages are as follows:
+
+```{r PropertyDamageTable, echo = TRUE,  results="asis"}
 PropertyDamage <- xtable(cost_PropertyDamage )
 print(PropertyDamage, type="html")
+```
 
+Retaining only the records with high reliabiltiy cost extimates doesn't signnificantly change the relative rankings on property damage: 
 
+```{r ReliablePropertyDamageTable, echo = TRUE,  results="asis"}
+PropertyDamageHigh <- xtable(cost_PropertyDamage_High )
+print(PropertyDamageHigh, type="html")
+```
+
+Total crop damages are as follows:
+
+```{r CropDamageTable, echo = TRUE,  results="asis"}
 CropDamage <- xtable(cost_CropDamage )
 print(CropDamage, type="html")
 ```
 
 
+Retaining only the records with high reliabiltiy cost extimates DOES signnificantly change the relative rankings for crop damages. Drought is now # 12 in the rankings: 
 
-
-
-
-
-#### 
-
-```{r, echo = TRUE }
-
+```{r ReliableCropDamageTable, echo = TRUE,  results="asis"}
+CropDamageHigh <- xtable(cost_CropDamage_High )
+print(CropDamageHigh, type="html")
 ```
 
 
 
-
-#### 
-
-
-```{r , echo=TRUE}
-
-```
-
-
-
-
-```{r, echo = TRUE }
-
-```
-
-
-
-#### 
+### Conclusion
 
 
 
@@ -342,37 +340,7 @@ print(CropDamage, type="html")
 
 
 
-#### 
-
-
-```{r, echo = TRUE }
-
-```
-
-
-
-```{r, echo = TRUE }
-
-```
-
-
-
-#### 
-
-
-
-```{r, echo = TRUE }
-
-```
-
-
-
-#### 
-
-
-```{r, echo = TRUE }
-
-```
+`
 
 ### Results
 
