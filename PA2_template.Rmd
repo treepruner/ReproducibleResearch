@@ -13,14 +13,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 rm(list = ls())
 
-```{r load_packages, echo = TRUE, message = FALSE}
-library(lubridate)
-library(dplyr)
-library(sqldf)
-library(xtable)
-library(ggplot2)
-library(mosaic)
-```
 
 
 ### Synopsis
@@ -42,11 +34,21 @@ For property damages, hurricanes, tornados, and flooding are the most expensive 
 
 #### Load Data
 
+```{r load_packages, echo = TRUE, message = FALSE}
+library(RCurl)
+library(lubridate)
+library(dplyr)
+library(sqldf)
+library(xtable)
+library(ggplot2)
+```
+
+
 
 ```{r getData, echo = TRUE}
 fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 
-download.file(fileURL, "./proj2/repdata%2Fdata%2FStormData.csv.bz2", method = "curl")
+download.file(fileURL, "./proj2/repdata%2Fdata%2FStormData.csv.bz2", method = "libcurl")
 
 sd <- read.csv("./proj2/repdata%2Fdata%2FStormData.csv.bz2")
 
@@ -68,7 +70,7 @@ head(sd, 1)
 
 ##### Dates
 
-lubridate was used to convert the dates that are factors into date fields.
+lubridate was used to convert the dates that are factors into date fields so that date parts such as year could be used in the figures.
 
 ```{r date_cleanup, echo = TRUE}
 sd$BGN_DATE <- mdy_hms(sd$BGN_DATE)
@@ -228,7 +230,7 @@ pop_fatalities_yr <-
 ```
 
 
-Top fatality event groups by year show that the data may be incomplete or have quality issues since there are no flooding or heat related deaths prior to 1990.
+The top "Fatalities by Event Groups by Year" figure present below  shows that the data may be incomplete or have quality issues since there are no flooding or heat related deaths prior to 1990.
 
 ```{r Figure 1, echo = TRUE}
 ggplot( data = pop_fatalities_yr
@@ -237,7 +239,8 @@ ggplot( data = pop_fatalities_yr
         geom_point() + 
         facet_grid(EnvTypeGroup ~ .) +
         geom_line()  + 
-        theme(legend.position = "bottom")
+        theme(legend.position = "bottom") +
+        ggtitle("Fatalities by Event Groups by Year")
 ```
 
 
@@ -281,7 +284,7 @@ pop_injuries_yr <-
 ```
 
 
-Top fatality event groups by year show that the data may be incomplete or have quality issues since several of the high count event groups have no injuries prior to 1990
+The top Injuries by Event Groups by Year figure shows that the data may be incomplete or have quality issues since several of the high count event groups have no injuries prior to 1990
 
 ```{r Figure 2, echo = TRUE}
 ggplot( data = pop_injuries_yr
@@ -290,7 +293,8 @@ ggplot( data = pop_injuries_yr
         geom_point() + 
         facet_grid(EnvTypeGroup ~ .) +
         geom_line() + 
-        theme(legend.position = "bottom")
+        theme(legend.position = "bottom") +
+        ggtitle("Injuries by Event Groups by Year")
 
 ```
 
