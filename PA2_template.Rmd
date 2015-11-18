@@ -46,12 +46,12 @@ For property damages, hurricanes, tornados, and flooding are the most expensive 
 ```{r getData, echo = TRUE}
 fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 
-download.file(fileURL, "./proj2/repdata%2Fdata%2FStormData.csv.bz2")
+download.file(fileURL, "./proj2/repdata%2Fdata%2FStormData.csv.bz2", method = "curl")
 
 sd <- read.csv("./proj2/repdata%2Fdata%2FStormData.csv.bz2")
 
 # save original
-saveRDS(stormData, "./proj2/stormData.rds")
+saveRDS(sd, "./proj2/stormData.rds")
 
 
 ```
@@ -409,7 +409,7 @@ https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Event
 #### EVTYPE Grouping Table
 The mapping table needs to be extracted from the HTML/PDF and created locally to reproduce the results.
 
-```{r EnvTypeGroupTable, echo = TRUE results="asis"}
+```{r EnvTypeGroupTable, echo = TRUE, results="asis"}
 print(xtable(envTypeMapping) ,  type="html")                                                     
 
 ```
