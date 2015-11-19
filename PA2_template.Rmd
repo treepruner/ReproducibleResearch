@@ -126,6 +126,17 @@ sd <- sqldf(
 
 ##### <span style="color:blue"> Economic Damage Fields </span>
 
+The events in this file range from 1950 to 2011, however, the documentation states it was best documented from 1996 forward. In light of this, the analysis is just including the BGN_DATES from 1996 - 2011. I wasn't able to get the date syntax correct with sqldf, so I'm doing that part with dplyr.
+
+To truely be comparable and understandable to the modern audience, the damage dollar amounts should be adjusted using an appropriate price index into current dollars in order to properly rank the financial impact of each event. This was deemed out of scope for our assignment. 
+
+```{r filter Years, echo = TRUE}
+sd0 <- sd %>% filter(year(BGN_DATE) >= 1996) 
+ 
+saveRDS(sd0, "./proj2/sd0.rds") 
+``` 
+
+
 The PROPDMG field is the numerical component of the property damage and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows before dividing by 1,000,000 in order to present the amounts consistently in millions: 
 
  * Bb = 1,000,000,000
@@ -148,7 +159,6 @@ Another field was added to indicate the reliability of the numbers. The assumpti
 
 The REMARKS have cost numbers that do not always match the cost fields for that record. A future analysis should compare these fields and either adjust the  reliability and/or update the damage numbers.
 
-The events in this file range from 1950 to 2011, however, the documentation states it was best documented from 1996 on. To truely be comparable and understandable to the modern audience, the damage dollar amounts should be adjusted using an appropriate price index into current dollars in order to properly rank the financial impact of each event. This was deemed out of scope for our assignment.
 
 
 ```{r fix_amts, echo = TRUE}
@@ -193,7 +203,10 @@ saveRDS(sd1, "./proj2/sd1.rds")
 
 ```         
   
+sd <- readRDS("./proj2/sd.rds")
+ 
 
+ 
          
 ### Results by Event Group
 
@@ -215,7 +228,7 @@ pop_fatalities <-
 ```
 
 
-The fatalities from 1950 - 2011 are ranked as follows:
+The fatalities from 1996 - 2011 are ranked as follows:
 
 ```{r FatalitiesTable, echo = TRUE,  results="asis"}
 fatalities <- xtable( pop_fatalities[pop_fatalities$Fatalities.Count != 0,], digits =  c(0,0,0,0,0,0,0,0) )
@@ -236,18 +249,17 @@ pop_fatalities_yr <-
 ```
 
 
-The top "Fatalities by Event Groups by Year" figure presented below shows that the data may be incomplete or have quality issues since there are no flooding or heat related deaths prior to 1990.
 
 ```{r FatalitiesFigure, fig.cap = "Figure 1: Fatalities", fig.width = 8, fig.height = 6, echo = TRUE}
 ggplot( data = pop_fatalities_yr
         , aes(x = Year
         , y = Fatalities.Count , colour = EnvTypeGroup)) +
         geom_point() + 
-        scale_x_continuous(breaks=seq(1950, 2011, 5)) +
+        scale_x_continuous(breaks=seq(1996, 2011, 1)) +
         facet_grid(EnvTypeGroup ~ .) +
         geom_line()  + 
         theme(legend.position = "bottom") +
-        ggtitle("Figure 1: Fatalities by Event Groups by Year")
+        ggtitle("Figure 1: Fatalities by Event Groups Since 1996")
 ```
 
 
@@ -298,11 +310,11 @@ ggplot( data = pop_injuries_yr
         , aes(x = Year
         , y = Injuries.Count, colour = EnvTypeGroup)) +
         geom_point() + 
-        scale_x_continuous(breaks=seq(1950, 2011, 5)) +
+        scale_x_continuous(breaks=seq(1996, 2011, 1)) +
         facet_grid(EnvTypeGroup ~ .) +
         geom_line() + 
         theme(legend.position = "bottom") +
-        ggtitle("Figure 2: Injuries by Event Groups by Year")
+        ggtitle("Figure 2: Injuries by Event Groups Since 1996")
 
 ```
 
@@ -363,7 +375,7 @@ cost_CropDamage_High <-
 ```
 
 
-Total property damages from 1950 - 2011 (assuming millions for ambiguous cost units) are as follows:
+Total property damages from 1996 - 2011 (assuming millions for ambiguous cost units) are as follows:
 
 ```{r PropertyDamageTable, echo = TRUE,  results="asis"}
 PropertyDamage <- xtable(cost_PropertyDamage[cost_PropertyDamage$PropertyDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
@@ -377,7 +389,7 @@ PropertyDamageHigh <- xtable(cost_PropertyDamage_High[cost_PropertyDamage_High$P
 print(PropertyDamageHigh, type="html", include.rownames=FALSE)
 ```
 
-Total crop damages from 1950 - 2011 (assuming millions for ambiguous cost units) are as follows:
+Total crop damages from 1996 - 2011 (assuming millions for ambiguous cost units) are as follows:
 
 ```{r CropDamageTable, echo = TRUE,  results="asis"}
 CropDamage <- xtable(cost_CropDamage[cost_CropDamage$CropDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
