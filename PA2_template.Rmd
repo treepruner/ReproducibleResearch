@@ -82,13 +82,13 @@ sd$END_DATE <- mdy_hms(sd$END_DATE)
 ```
 
 
-##### Group EVTYPE Codes
+##### EVTYPE Code Groupings 
 
 There are 985 unique EVTYPE codes, many of which are very similar. Rankings using this EVTYPE as it stands would be too disaggregated to be useful.
 
 The EVTYPE codes were grouped together into 38 groups. This mapping was created by extracting the 985 unique EVTYPE codes and manually assigning them to a group. The storm data file was joined to the mapping file on EVTYPE with sqldf and the new EnvTypeGroup code was added.
 
-To make this reproducible by others, the entire mapping file has been read in to this documen in the appendix:
+To make this reproducible by others, the entire mapping file has been read into this document in the appendix.
 
 ```{r EnvTypeGroupMapping, echo = TRUE}
 envTypeMapping <- read.csv("./proj2/envTypeList.csv",  sep = ",")[, 2:3]
@@ -102,9 +102,9 @@ sd <- sqldf(
 
 ##### Duplicates 
 
-Check for duplicates. Determine if the REFNUM identifies a unique row. Remove duplicate REFNUMs. This removed records that were exactly the same in all fields so that only 1 record out of the multiples remained in the file. 
+This section checks for duplicates and determines if the REFNUM identifies a unique row. Removed records that were exactly the same in all fields so that only 1 record out of the multiples remained in the file. 
 
-There is another pair of records, REFNUM 605943 and 567221 that although they have different REFNUMs, appear to be for the same event. The REMARKS refer to millions in damage, so REFNUM 605943 which referred to billions in PROPDMGEXP, was removed.
+Others in the class discovered that there is another pair of records, REFNUM 605943 and 567221, that although they have different REFNUMs, appear to be for the same event. The REMARKS refer to millions in damage, so REFNUM 605943 which referred to billions in PROPDMGEXP, was removed.
 
 ```{r duplicates, echo = TRUE}
 dup_refnum <- sqldf( 
@@ -127,6 +127,7 @@ sd <- sqldf(
 ##### Economic Damage Fields
 
 The PROPDMG field is the numerical component of the property damage and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows before dividing by 1,000,000: 
+
  * Bb = billions
  * Mm = millions 
  * Kk = thousands
@@ -135,14 +136,13 @@ The PROPDMG field is the numerical component of the property damage and the PROP
  * anything else = millions
  
 The CROPDMG field is the numerical component of the crop damage and the CROPDMGEXP is the units, however, the units field is also dirty. The numerical field was multiplied as follows before dividing by 1,000,000: 
+
  * Bb = billions
  * Mm = millions 
  * Kk = thousands
  * Hh = hundreds
  * ?  = 0
  * anything else = millions
-
-
 
 Another field was added to indicate the reliability of the numbers. The assumption about "anything else"  and "?" was coded as low reliability. 
 
@@ -178,7 +178,7 @@ sd1 <- sqldf(
                 when upper(CROPDMGEXP) = 'K' then round(CROPDMG * 1000,0)/1000000
                 when upper(CROPDMGEXP) = 'H' then round(CROPDMG * 100,0)/1000000
                 when upper(CROPDMGEXP) = '?' then round(CROPDMG * 0,0)/1000000
-           else round(CROPDMG * 1000000,0)
+           else round(CROPDMG * 1000000,0)/1000000
            end as CropDamageAmt
         , case 
                 when upper(PROPDMGEXP) not in ('B', 'M', 'K', 'H') then 'Low'
@@ -189,7 +189,7 @@ sd1 <- sqldf(
          from sd
          where REFNUM <> 605943 "          )
 
-saveRDS(sd, "./proj2/sd.rds")
+saveRDS(sd1, "./proj2/sd1.rds")
 
 ```         
   
@@ -218,11 +218,10 @@ pop_fatalities <-
 The fatalities from 1950 - 2011 are ranked as follows:
 
 ```{r FatalitiesTable, echo = TRUE,  results="asis"}
-fatalities <- xtable(pop_fatalities[pop_fatalities$Fatalities.Count != 0,], digits =  c(0,0,0,0,0,0,0,0) )
-print(fatalities, type="html")
+fatalities <- xtable( prettyNum(pop_fatalities[pop_fatalities$Fatalities.Count != 0,], big.mark = ",", preserve.width = "none"), digits =  c(0,0,0,0,0,0,0,0) )
+print(fatalities, type="html", include.rownames=FALSE)
 ```
-
-Fatalities by Year
+Fatalities Table
 
 ```{r fatalities_yr_stats, echo = TRUE}
 pop_fatalities_yr <- 
@@ -237,18 +236,18 @@ pop_fatalities_yr <-
 ```
 
 
-The top "Fatalities by Event Groups by Year" figure present below  shows that the data may be incomplete or have quality issues since there are no flooding or heat related deaths prior to 1990.
+The top "Fatalities by Event Groups by Year" figure presented below shows that the data may be incomplete or have quality issues since there are no flooding or heat related deaths prior to 1990.
 
-```{r FatalitiesFigure, fig.cap = "Fatalities Figure", fig.width = 8, echo = TRUE}
+```{r FatalitiesFigure, fig.cap = "Figure 1: Fatalities", fig.width = 8, fig.height = 6, echo = TRUE}
 ggplot( data = pop_fatalities_yr
         , aes(x = Year
         , y = Fatalities.Count , colour = EnvTypeGroup)) +
         geom_point() + 
-        scale_y_continuous(breaks=seq(1950, 2011, 5)) +
+        scale_x_continuous(breaks=seq(1950, 2011, 5)) +
         facet_grid(EnvTypeGroup ~ .) +
         geom_line()  + 
         theme(legend.position = "bottom") +
-        ggtitle("Fatalities by Event Groups by Year")
+        ggtitle("Figure 1: Fatalities by Event Groups by Year")
 ```
 
 
@@ -273,11 +272,11 @@ The injuries from  1950 - 2011 are ranked as follows:
 
 ```{r InjuriesTable, echo = TRUE,  results="asis"}
 
-injuries <- xtable(pop_injuries[pop_injuries$Injuries.Count != 0,], digits = c(0,0,0,0,0,0,0,0) )
+injuries <- xtable(prettyNum(pop_injuries[pop_injuries$Injuries.Count != 0,], big.mark = ",", preserve.width = "none"), digits = c(0,0,0,0,0,0,0,0) )
 print(injuries, type="html", include.rownames=FALSE)
 
 ```
-
+Injuries Table
 
 ```{r injuries_yr_stats, echo = TRUE}
 pop_injuries_yr <- 
@@ -294,23 +293,23 @@ pop_injuries_yr <-
 
 The top Injuries by Event Groups by Year figure shows that the data may be incomplete or have quality issues since several of the high count event groups have no injuries prior to 1990
 
-```{r InjuriesFigure, fig.cap = "InjuriesFigure", fig.width = 8, echo = TRUE}
+```{r InjuriesFigure, fig.cap = "Figure 2: Injuries", fig.width = 8, fig.height = 6, echo = TRUE}
 ggplot( data = pop_injuries_yr
         , aes(x = Year
         , y = Injuries.Count, colour = EnvTypeGroup)) +
         geom_point() + 
-        scale_y_continuous(breaks=seq(1950, 2011, 5)) +
+        scale_x_continuous(breaks=seq(1950, 2011, 5)) +
         facet_grid(EnvTypeGroup ~ .) +
         geom_line() + 
         theme(legend.position = "bottom") +
-        ggtitle("Injuries by Event Groups by Year")
+        ggtitle("Figure 2: Injuries by Event Groups by Year")
 
 ```
 
 
 
 
-#### Economic Impact Statistics (displayed in Millions)
+#### Economic Impact Statistics (displayed in millions)
 
 ```{r damage_stats, echo = TRUE}
 cost_PropertyDamage <- 
@@ -367,21 +366,21 @@ cost_CropDamage_High <-
 Total property damages from 1950 - 2011 (assuming millions for ambiguous cost units) are as follows:
 
 ```{r PropertyDamageTable, echo = TRUE,  results="asis"}
-PropertyDamage <- xtable(cost_PropertyDamage[cost_PropertyDamage$PropertyDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
+PropertyDamage <- xtable(prettyNum(cost_PropertyDamage[cost_PropertyDamage$PropertyDamageAmt.Sum != 0,], big.mark = ",", preserve.width = "none"), digits = c(0,0,0,0,0,0,0,0) ) 
 print(PropertyDamage, type="html", include.rownames=FALSE)
 ```
 
 Retaining only the records with high reliabiltiy cost estimates doesn't signnificantly change the relative rankings on property damage: 
 
 ```{r ReliablePropertyDamageTable, echo = TRUE,  results="asis"}
-PropertyDamageHigh <- xtable(cost_PropertyDamage_High[cost_PropertyDamage_High$PropertyDamageAmt.Sum != 0,] )
+PropertyDamageHigh <- xtable(prettyNum(cost_PropertyDamage_High[cost_PropertyDamage_High$PropertyDamageAmt.Sum != 0,], big.mark = ",", preserve.width = "none"), digits = c(0,0,0,0,0,0,0,0) )
 print(PropertyDamageHigh, type="html", include.rownames=FALSE)
 ```
 
 Total crop damages from 1950 - 2011 (assuming millions for ambiguous cost units) are as follows:
 
 ```{r CropDamageTable, echo = TRUE,  results="asis"}
-CropDamage <- xtable(cost_CropDamage[cost_CropDamage$CropDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
+CropDamage <- xtable(prettyNum(cost_CropDamage[cost_CropDamage$CropDamageAmt.Sum != 0,], big.mark = ",", preserve.width = "none"), digits = c(0,0,0,0,0,0,0,0) ) 
 print(CropDamage, type="html", include.rownames=FALSE)
 ```
 
@@ -423,6 +422,6 @@ https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Event
 The mapping table needs to be extracted from the HTML/PDF and created locally to reproduce this analysis.
 
 ```{r EnvTypeGroupTable, echo = TRUE, results="asis"}
-print(xtable(envTypeMapping) ,  type="html")                                                     
+print(xtable(envTypeMapping) ,  type="html" , include.rownames=FALSE)                                                     
 
 ```
