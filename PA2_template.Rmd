@@ -5,13 +5,14 @@ date: "November 15, 2015"
 output: 
         html_document:
                 keep_md: yes
+                fig_caption: yes
+        pdf_document:
+                fig_caption: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-rm(list = ls())
 
 
 
@@ -41,14 +42,16 @@ library(dplyr)
 library(sqldf)
 library(xtable)
 library(ggplot2)
+library(scales)
 ```
 
 
 
 ```{r getData, echo = TRUE}
+if (!file.exists("./proj2/repdata%2Fdata%2FStormData.csv.bz2")) { 
 fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
-
-download.file(fileURL, "./proj2/repdata%2Fdata%2FStormData.csv.bz2", method = "libcurl")
+setInternet2(use = TRUE)
+download.file(fileURL, "./proj2/repdata%2Fdata%2FStormData.csv.bz2", method = "curl")}
 
 sd <- read.csv("./proj2/repdata%2Fdata%2FStormData.csv.bz2")
 
@@ -123,7 +126,7 @@ sd <- sqldf(
 
 ##### Economic Damage Fields
 
-The PROPDMG field is the numerical component of the property damage and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows: 
+The PROPDMG field is the numerical component of the property damage and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows before dividing by 1,000,000: 
  * Bb = billions
  * Mm = millions 
  * Kk = thousands
@@ -131,13 +134,15 @@ The PROPDMG field is the numerical component of the property damage and the PROP
  * ?  = 0
  * anything else = millions
  
-The CROPDMG field is the numerical component of the crop damage and the CROPDMGEXP is the units, however, the units field is also dirty. The numerical field was multiplied as follows: 
+The CROPDMG field is the numerical component of the crop damage and the CROPDMGEXP is the units, however, the units field is also dirty. The numerical field was multiplied as follows before dividing by 1,000,000: 
  * Bb = billions
  * Mm = millions 
  * Kk = thousands
  * Hh = hundreds
  * ?  = 0
  * anything else = millions
+
+
 
 Another field was added to indicate the reliability of the numbers. The assumption about "anything else"  and "?" was coded as low reliability. 
 
@@ -158,22 +163,22 @@ sd1 <- sqldf(
         , PROPDMG
         , PROPDMGEXP
         , case 
-                when upper(PROPDMGEXP) = 'B' then PROPDMG * 1000000000
-                when upper(PROPDMGEXP) = 'M' then PROPDMG * 1000000
-                when upper(PROPDMGEXP) = 'K' then PROPDMG * 1000
-                when upper(PROPDMGEXP) = 'H' then PROPDMG * 100
-                when upper(PROPDMGEXP) = '?' then PROPDMG * 0
-           else PROPDMG * 1000000
+                when upper(PROPDMGEXP) = 'B' then round(PROPDMG * 1000000000,0)/1000000
+                when upper(PROPDMGEXP) = 'M' then round(PROPDMG * 1000000,0)/1000000
+                when upper(PROPDMGEXP) = 'K' then round(PROPDMG * 1000,0)/1000000
+                when upper(PROPDMGEXP) = 'H' then round(PROPDMG * 100,0)/1000000
+                when upper(PROPDMGEXP) = '?' then round(PROPDMG * 0,0)/1000000
+           else round(PROPDMG * 1000000,0)/1000000
            end as PropertyDamageAmt
         , CROPDMG
         , CROPDMGEXP
         , case 
-                when upper(CROPDMGEXP) = 'B' then CROPDMG * 1000000000
-                when upper(CROPDMGEXP) = 'M' then CROPDMG * 1000000
-                when upper(CROPDMGEXP) = 'K' then CROPDMG * 1000
-                when upper(CROPDMGEXP) = 'H' then CROPDMG * 100
-                when upper(CROPDMGEXP) = '?' then CROPDMG * 0
-           else CROPDMG * 1000000
+                when upper(CROPDMGEXP) = 'B' then round(CROPDMG * 1000000000,0)/1000000
+                when upper(CROPDMGEXP) = 'M' then round(CROPDMG * 1000000,0)/1000000
+                when upper(CROPDMGEXP) = 'K' then round(CROPDMG * 1000,0)/1000000
+                when upper(CROPDMGEXP) = 'H' then round(CROPDMG * 100,0)/1000000
+                when upper(CROPDMGEXP) = '?' then round(CROPDMG * 0,0)/1000000
+           else round(CROPDMG * 1000000,0)
            end as CropDamageAmt
         , case 
                 when upper(PROPDMGEXP) not in ('B', 'M', 'K', 'H') then 'Low'
@@ -187,10 +192,12 @@ sd1 <- sqldf(
 saveRDS(sd, "./proj2/sd.rds")
 
 ```         
+  
+
          
 ### Results by Event Group
 
-#### Population Health Stastics by Event Group
+#### Population Health Statistics by Event Group
 
 
 ```{r fatalities_stats, echo = TRUE}
@@ -211,7 +218,7 @@ pop_fatalities <-
 The fatalities from 1950 - 2011 are ranked as follows:
 
 ```{r FatalitiesTable, echo = TRUE,  results="asis"}
-fatalities <- xtable(pop_fatalities[pop_fatalities$Fatalities.Count != 0,] )
+fatalities <- xtable(pop_fatalities[pop_fatalities$Fatalities.Count != 0,], digits =  c(0,0,0,0,0,0,0,0) )
 print(fatalities, type="html")
 ```
 
@@ -232,11 +239,12 @@ pop_fatalities_yr <-
 
 The top "Fatalities by Event Groups by Year" figure present below  shows that the data may be incomplete or have quality issues since there are no flooding or heat related deaths prior to 1990.
 
-```{r Figure 1, echo = TRUE}
+```{r FatalitiesFigure, fig.cap = "Fatalities Figure", fig.width = 8, echo = TRUE}
 ggplot( data = pop_fatalities_yr
         , aes(x = Year
         , y = Fatalities.Count , colour = EnvTypeGroup)) +
         geom_point() + 
+        scale_y_continuous(breaks=seq(1950, 2011, 5)) +
         facet_grid(EnvTypeGroup ~ .) +
         geom_line()  + 
         theme(legend.position = "bottom") +
@@ -265,8 +273,8 @@ The injuries from  1950 - 2011 are ranked as follows:
 
 ```{r InjuriesTable, echo = TRUE,  results="asis"}
 
-injuries <- xtable(pop_injuries[pop_injuries$Injuries.Count != 0,] )
-print(injuries, type="html")
+injuries <- xtable(pop_injuries[pop_injuries$Injuries.Count != 0,], digits = c(0,0,0,0,0,0,0,0) )
+print(injuries, type="html", include.rownames=FALSE)
 
 ```
 
@@ -286,11 +294,12 @@ pop_injuries_yr <-
 
 The top Injuries by Event Groups by Year figure shows that the data may be incomplete or have quality issues since several of the high count event groups have no injuries prior to 1990
 
-```{r Figure 2, echo = TRUE}
+```{r InjuriesFigure, fig.cap = "InjuriesFigure", fig.width = 8, echo = TRUE}
 ggplot( data = pop_injuries_yr
         , aes(x = Year
         , y = Injuries.Count, colour = EnvTypeGroup)) +
         geom_point() + 
+        scale_y_continuous(breaks=seq(1950, 2011, 5)) +
         facet_grid(EnvTypeGroup ~ .) +
         geom_line() + 
         theme(legend.position = "bottom") +
@@ -301,7 +310,7 @@ ggplot( data = pop_injuries_yr
 
 
 
-#### Economic Impacts
+#### Economic Impact Statistics (displayed in Millions)
 
 ```{r damage_stats, echo = TRUE}
 cost_PropertyDamage <- 
@@ -358,30 +367,30 @@ cost_CropDamage_High <-
 Total property damages from 1950 - 2011 (assuming millions for ambiguous cost units) are as follows:
 
 ```{r PropertyDamageTable, echo = TRUE,  results="asis"}
-PropertyDamage <- xtable(cost_PropertyDamage[cost_PropertyDamage$PropertyDamageAmt.Sum != 0,] )
-print(PropertyDamage, type="html")
+PropertyDamage <- xtable(cost_PropertyDamage[cost_PropertyDamage$PropertyDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
+print(PropertyDamage, type="html", include.rownames=FALSE)
 ```
 
 Retaining only the records with high reliabiltiy cost estimates doesn't signnificantly change the relative rankings on property damage: 
 
 ```{r ReliablePropertyDamageTable, echo = TRUE,  results="asis"}
 PropertyDamageHigh <- xtable(cost_PropertyDamage_High[cost_PropertyDamage_High$PropertyDamageAmt.Sum != 0,] )
-print(PropertyDamageHigh, type="html")
+print(PropertyDamageHigh, type="html", include.rownames=FALSE)
 ```
 
 Total crop damages from 1950 - 2011 (assuming millions for ambiguous cost units) are as follows:
 
 ```{r CropDamageTable, echo = TRUE,  results="asis"}
-CropDamage <- xtable(cost_CropDamage[cost_CropDamage$CropDamageAmt.Sum != 0,] )
-print(CropDamage, type="html")
+CropDamage <- xtable(cost_CropDamage[cost_CropDamage$CropDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
+print(CropDamage, type="html", include.rownames=FALSE)
 ```
 
 
 Retaining only the records with high reliabiltiy cost extimates DOES signnificantly change the relative rankings for crop damages. Drought is now # 12 in the rankings: 
 
 ```{r ReliableCropDamageTable, echo = TRUE,  results="asis"}
-CropDamageHigh <- xtable(cost_CropDamage_High[cost_CropDamage$CropDamageAmt.Sum != 0,] )
-print(CropDamageHigh, type="html")
+CropDamageHigh <- xtable(cost_CropDamage_High[cost_CropDamage$CropDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
+print(CropDamageHigh, type="html", include.rownames=FALSE)
 ```
 
 
@@ -411,7 +420,7 @@ https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Event
 
 
 #### EVTYPE Grouping Table
-The mapping table needs to be extracted from the HTML/PDF and created locally to reproduce the results.
+The mapping table needs to be extracted from the HTML/PDF and created locally to reproduce this analysis.
 
 ```{r EnvTypeGroupTable, echo = TRUE, results="asis"}
 print(xtable(envTypeMapping) ,  type="html")                                                     

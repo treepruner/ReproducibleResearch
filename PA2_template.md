@@ -4,17 +4,6 @@ November 15, 2015
 
 
 
-rm(list = ls())
-
-
-```r
-library(lubridate)
-library(dplyr)
-library(sqldf)
-library(xtable)
-library(ggplot2)
-library(mosaic)
-```
 
 
 ### Synopsis
@@ -37,25 +26,25 @@ For property damages, hurricanes, tornados, and flooding are the most expensive 
 #### Load Data
 
 
+```r
+library(RCurl)
+library(lubridate)
+library(dplyr)
+library(sqldf)
+library(xtable)
+library(ggplot2)
+library(scales)
+```
+
+
+
 
 ```r
+if (!file.exists("./proj2/repdata%2Fdata%2FStormData.csv.bz2")) { 
 fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+setInternet2(use = TRUE)
+download.file(fileURL, "./proj2/repdata%2Fdata%2FStormData.csv.bz2", method = "curl")}
 
-download.file(fileURL, "./proj2/repdata%2Fdata%2FStormData.csv.bz2", method = "curl")
-```
-
-```
-## Warning: running command 'curl "https://d396qusza40orc.cloudfront.net/
-## repdata%2Fdata%2FStormData.csv.bz2" -o "./proj2/repdata%2Fdata
-## %2FStormData.csv.bz2"' had status 127
-```
-
-```
-## Warning in download.file(fileURL, "./proj2/repdata%2Fdata
-## %2FStormData.csv.bz2", : download had nonzero exit status
-```
-
-```r
 sd <- read.csv("./proj2/repdata%2Fdata%2FStormData.csv.bz2")
 
 # save original
@@ -132,7 +121,7 @@ head(sd, 1)
 
 ##### Dates
 
-lubridate was used to convert the dates that are factors into date fields.
+lubridate was used to convert the dates that are factors into date fields so that date parts such as year could be used in the figures.
 
 
 ```r
@@ -198,7 +187,7 @@ sd <- sqldf(
 
 ##### Economic Damage Fields
 
-The PROPDMG field is the numerical component of the property damage and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows: 
+The PROPDMG field is the numerical component of the property damage and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows before dividing by 1,000,000: 
  * Bb = billions
  * Mm = millions 
  * Kk = thousands
@@ -206,13 +195,15 @@ The PROPDMG field is the numerical component of the property damage and the PROP
  * ?  = 0
  * anything else = millions
  
-The CROPDMG field is the numerical component of the crop damage and the CROPDMGEXP is the units, however, the units field is also dirty. The numerical field was multiplied as follows: 
+The CROPDMG field is the numerical component of the crop damage and the CROPDMGEXP is the units, however, the units field is also dirty. The numerical field was multiplied as follows before dividing by 1,000,000: 
  * Bb = billions
  * Mm = millions 
  * Kk = thousands
  * Hh = hundreds
  * ?  = 0
  * anything else = millions
+
+
 
 Another field was added to indicate the reliability of the numbers. The assumption about "anything else"  and "?" was coded as low reliability. 
 
@@ -234,22 +225,22 @@ sd1 <- sqldf(
         , PROPDMG
         , PROPDMGEXP
         , case 
-                when upper(PROPDMGEXP) = 'B' then PROPDMG * 1000000000
-                when upper(PROPDMGEXP) = 'M' then PROPDMG * 1000000
-                when upper(PROPDMGEXP) = 'K' then PROPDMG * 1000
-                when upper(PROPDMGEXP) = 'H' then PROPDMG * 100
-                when upper(PROPDMGEXP) = '?' then PROPDMG * 0
-           else PROPDMG * 1000000
+                when upper(PROPDMGEXP) = 'B' then round(PROPDMG * 1000000000,0)/1000000
+                when upper(PROPDMGEXP) = 'M' then round(PROPDMG * 1000000,0)/1000000
+                when upper(PROPDMGEXP) = 'K' then round(PROPDMG * 1000,0)/1000000
+                when upper(PROPDMGEXP) = 'H' then round(PROPDMG * 100,0)/1000000
+                when upper(PROPDMGEXP) = '?' then round(PROPDMG * 0,0)/1000000
+           else round(PROPDMG * 1000000,0)/1000000
            end as PropertyDamageAmt
         , CROPDMG
         , CROPDMGEXP
         , case 
-                when upper(CROPDMGEXP) = 'B' then CROPDMG * 1000000000
-                when upper(CROPDMGEXP) = 'M' then CROPDMG * 1000000
-                when upper(CROPDMGEXP) = 'K' then CROPDMG * 1000
-                when upper(CROPDMGEXP) = 'H' then CROPDMG * 100
-                when upper(CROPDMGEXP) = '?' then CROPDMG * 0
-           else CROPDMG * 1000000
+                when upper(CROPDMGEXP) = 'B' then round(CROPDMG * 1000000000,0)/1000000
+                when upper(CROPDMGEXP) = 'M' then round(CROPDMG * 1000000,0)/1000000
+                when upper(CROPDMGEXP) = 'K' then round(CROPDMG * 1000,0)/1000000
+                when upper(CROPDMGEXP) = 'H' then round(CROPDMG * 100,0)/1000000
+                when upper(CROPDMGEXP) = '?' then round(CROPDMG * 0,0)/1000000
+           else round(CROPDMG * 1000000,0)
            end as CropDamageAmt
         , case 
                 when upper(PROPDMGEXP) not in ('B', 'M', 'K', 'H') then 'Low'
@@ -262,10 +253,12 @@ sd1 <- sqldf(
 
 saveRDS(sd, "./proj2/sd.rds")
 ```
+  
+
          
 ### Results by Event Group
 
-#### Population Health Stastics by Event Group
+#### Population Health Statistics by Event Group
 
 
 
@@ -287,39 +280,39 @@ The fatalities from 1950 - 2011 are ranked as follows:
 
 
 ```r
-fatalities <- xtable(pop_fatalities[pop_fatalities$Fatalities.Count != 0,] )
+fatalities <- xtable(pop_fatalities[pop_fatalities$Fatalities.Count != 0,], digits =  c(0,0,0,0,0,0,0,0) )
 print(fatalities, type="html")
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Wed Nov 18 13:41:09 2015 -->
+<!-- Wed Nov 18 20:10:11 2015 -->
 <table border=1>
 <tr> <th>  </th> <th> EnvTypeGroup </th> <th> n </th> <th> Fatalities.Count </th> <th> Fatalities.Mean </th> <th> Fatalities.Median </th> <th> Fatalities.Min </th> <th> Fatalities.Max </th>  </tr>
-  <tr> <td align="right"> 1 </td> <td> Tornado/Waterspout </td> <td align="right"> 71548 </td> <td align="right"> 5639.00 </td> <td align="right"> 0.08 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 158.00 </td> </tr>
-  <tr> <td align="right"> 2 </td> <td> Heat </td> <td align="right"> 3013 </td> <td align="right"> 3172.00 </td> <td align="right"> 1.05 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 583.00 </td> </tr>
-  <tr> <td align="right"> 3 </td> <td> Flooding </td> <td align="right"> 85229 </td> <td align="right"> 1548.00 </td> <td align="right"> 0.02 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 20.00 </td> </tr>
-  <tr> <td align="right"> 4 </td> <td> Wind </td> <td align="right"> 351097 </td> <td align="right"> 1151.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 11.00 </td> </tr>
-  <tr> <td align="right"> 5 </td> <td> Lightning </td> <td align="right"> 15770 </td> <td align="right"> 817.00 </td> <td align="right"> 0.05 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5.00 </td> </tr>
-  <tr> <td align="right"> 6 </td> <td> Rip Current </td> <td align="right"> 777 </td> <td align="right"> 577.00 </td> <td align="right"> 0.74 </td> <td align="right"> 1.00 </td> <td align="right"> 0.00 </td> <td align="right"> 6.00 </td> </tr>
-  <tr> <td align="right"> 7 </td> <td> Wintery Mix </td> <td align="right"> 40059 </td> <td align="right"> 556.00 </td> <td align="right"> 0.01 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 10.00 </td> </tr>
-  <tr> <td align="right"> 8 </td> <td> Cold </td> <td align="right"> 4292 </td> <td align="right"> 485.00 </td> <td align="right"> 0.11 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 14.00 </td> </tr>
-  <tr> <td align="right"> 9 </td> <td> Avalanche </td> <td align="right"> 388 </td> <td align="right"> 225.00 </td> <td align="right"> 0.58 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 6.00 </td> </tr>
-  <tr> <td align="right"> 10 </td> <td> Coastal Flooding </td> <td align="right"> 2494 </td> <td align="right"> 203.00 </td> <td align="right"> 0.08 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 11.00 </td> </tr>
-  <tr> <td align="right"> 11 </td> <td> Hurricane </td> <td align="right"> 301 </td> <td align="right"> 135.00 </td> <td align="right"> 0.45 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 15.00 </td> </tr>
-  <tr> <td align="right"> 12 </td> <td> Blizzard </td> <td align="right"> 2755 </td> <td align="right"> 102.00 </td> <td align="right"> 0.04 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 8.00 </td> </tr>
-  <tr> <td align="right"> 13 </td> <td> Rain </td> <td align="right"> 11954 </td> <td align="right"> 101.00 </td> <td align="right"> 0.01 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 19.00 </td> </tr>
-  <tr> <td align="right"> 14 </td> <td> Fire </td> <td align="right"> 4260 </td> <td align="right"> 90.00 </td> <td align="right"> 0.02 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 14.00 </td> </tr>
-  <tr> <td align="right"> 15 </td> <td> Fog </td> <td align="right"> 1834 </td> <td align="right"> 80.00 </td> <td align="right"> 0.04 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 11.00 </td> </tr>
-  <tr> <td align="right"> 16 </td> <td> Tropical Storm </td> <td align="right"> 697 </td> <td align="right"> 66.00 </td> <td align="right"> 0.09 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 22.00 </td> </tr>
-  <tr> <td align="right"> 17 </td> <td> Landslide </td> <td align="right"> 652 </td> <td align="right"> 44.00 </td> <td align="right"> 0.07 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 14.00 </td> </tr>
-  <tr> <td align="right"> 18 </td> <td> Tsunami </td> <td align="right">  20 </td> <td align="right"> 33.00 </td> <td align="right"> 1.65 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 32.00 </td> </tr>
-  <tr> <td align="right"> 19 </td> <td> Dust Storm </td> <td align="right"> 585 </td> <td align="right"> 24.00 </td> <td align="right"> 0.04 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 10.00 </td> </tr>
-  <tr> <td align="right"> 20 </td> <td> Thunderstorm </td> <td align="right"> 12232 </td> <td align="right"> 22.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5.00 </td> </tr>
-  <tr> <td align="right"> 21 </td> <td> Heavy Seas </td> <td align="right">  20 </td> <td align="right"> 20.00 </td> <td align="right"> 1.00 </td> <td align="right"> 0.50 </td> <td align="right"> 0.00 </td> <td align="right"> 4.00 </td> </tr>
-  <tr> <td align="right"> 22 </td> <td> Hail </td> <td align="right"> 289281 </td> <td align="right"> 15.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 4.00 </td> </tr>
-  <tr> <td align="right"> 23 </td> <td> Marine Mishap </td> <td align="right">   3 </td> <td align="right"> 8.00 </td> <td align="right"> 2.67 </td> <td align="right"> 1.00 </td> <td align="right"> 1.00 </td> <td align="right"> 6.00 </td> </tr>
-  <tr> <td align="right"> 24 </td> <td> Drought </td> <td align="right"> 2599 </td> <td align="right"> 6.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 4.00 </td> </tr>
-  <tr> <td align="right"> 25 </td> <td> Drowning </td> <td align="right">   1 </td> <td align="right"> 1.00 </td> <td align="right"> 1.00 </td> <td align="right"> 1.00 </td> <td align="right"> 1.00 </td> <td align="right"> 1.00 </td> </tr>
+  <tr> <td align="right"> 1 </td> <td> Tornado/Waterspout </td> <td align="right"> 71548 </td> <td align="right"> 5639 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 158 </td> </tr>
+  <tr> <td align="right"> 2 </td> <td> Heat </td> <td align="right"> 3013 </td> <td align="right"> 3172 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 583 </td> </tr>
+  <tr> <td align="right"> 3 </td> <td> Flooding </td> <td align="right"> 85229 </td> <td align="right"> 1548 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 20 </td> </tr>
+  <tr> <td align="right"> 4 </td> <td> Wind </td> <td align="right"> 351097 </td> <td align="right"> 1151 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 11 </td> </tr>
+  <tr> <td align="right"> 5 </td> <td> Lightning </td> <td align="right"> 15770 </td> <td align="right"> 817 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 5 </td> </tr>
+  <tr> <td align="right"> 6 </td> <td> Rip Current </td> <td align="right"> 777 </td> <td align="right"> 577 </td> <td align="right"> 1 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 6 </td> </tr>
+  <tr> <td align="right"> 7 </td> <td> Wintery Mix </td> <td align="right"> 40059 </td> <td align="right"> 556 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 10 </td> </tr>
+  <tr> <td align="right"> 8 </td> <td> Cold </td> <td align="right"> 4292 </td> <td align="right"> 485 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 14 </td> </tr>
+  <tr> <td align="right"> 9 </td> <td> Avalanche </td> <td align="right"> 388 </td> <td align="right"> 225 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 6 </td> </tr>
+  <tr> <td align="right"> 10 </td> <td> Coastal Flooding </td> <td align="right"> 2494 </td> <td align="right"> 203 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 11 </td> </tr>
+  <tr> <td align="right"> 11 </td> <td> Hurricane </td> <td align="right"> 301 </td> <td align="right"> 135 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 15 </td> </tr>
+  <tr> <td align="right"> 12 </td> <td> Blizzard </td> <td align="right"> 2755 </td> <td align="right"> 102 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 8 </td> </tr>
+  <tr> <td align="right"> 13 </td> <td> Rain </td> <td align="right"> 11954 </td> <td align="right"> 101 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 19 </td> </tr>
+  <tr> <td align="right"> 14 </td> <td> Fire </td> <td align="right"> 4260 </td> <td align="right"> 90 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 14 </td> </tr>
+  <tr> <td align="right"> 15 </td> <td> Fog </td> <td align="right"> 1834 </td> <td align="right"> 80 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 11 </td> </tr>
+  <tr> <td align="right"> 16 </td> <td> Tropical Storm </td> <td align="right"> 697 </td> <td align="right"> 66 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 22 </td> </tr>
+  <tr> <td align="right"> 17 </td> <td> Landslide </td> <td align="right"> 652 </td> <td align="right"> 44 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 14 </td> </tr>
+  <tr> <td align="right"> 18 </td> <td> Tsunami </td> <td align="right"> 20 </td> <td align="right"> 33 </td> <td align="right"> 2 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 32 </td> </tr>
+  <tr> <td align="right"> 19 </td> <td> Dust Storm </td> <td align="right"> 585 </td> <td align="right"> 24 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 10 </td> </tr>
+  <tr> <td align="right"> 20 </td> <td> Thunderstorm </td> <td align="right"> 12232 </td> <td align="right"> 22 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 5 </td> </tr>
+  <tr> <td align="right"> 21 </td> <td> Heavy Seas </td> <td align="right"> 20 </td> <td align="right"> 20 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 4 </td> </tr>
+  <tr> <td align="right"> 22 </td> <td> Hail </td> <td align="right"> 289281 </td> <td align="right"> 15 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 4 </td> </tr>
+  <tr> <td align="right"> 23 </td> <td> Marine Mishap </td> <td align="right"> 3 </td> <td align="right"> 8 </td> <td align="right"> 3 </td> <td align="right"> 1 </td> <td align="right"> 1 </td> <td align="right"> 6 </td> </tr>
+  <tr> <td align="right"> 24 </td> <td> Drought </td> <td align="right"> 2599 </td> <td align="right"> 6 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 4 </td> </tr>
+  <tr> <td align="right"> 25 </td> <td> Drowning </td> <td align="right"> 1 </td> <td align="right"> 1 </td> <td align="right"> 1 </td> <td align="right"> 1 </td> <td align="right"> 1 </td> <td align="right"> 1 </td> </tr>
    </table>
 
 Fatalities by Year
@@ -337,7 +330,7 @@ pop_fatalities_yr <-
 ```
 
 
-Top fatality event groups by year show that the data may be incomplete or have quality issues since there are no flooding or heat related deaths prior to 1990.
+The top "Fatalities by Event Groups by Year" figure present below  shows that the data may be incomplete or have quality issues since there are no flooding or heat related deaths prior to 1990.
 
 
 ```r
@@ -345,12 +338,14 @@ ggplot( data = pop_fatalities_yr
         , aes(x = Year
         , y = Fatalities.Count , colour = EnvTypeGroup)) +
         geom_point() + 
+        scale_y_continuous(breaks=seq(1950, 2011, 5)) +
         facet_grid(EnvTypeGroup ~ .) +
         geom_line()  + 
-        theme(legend.position = "bottom")
+        theme(legend.position = "bottom") +
+        ggtitle("Fatalities by Event Groups by Year")
 ```
 
-![](PA2_template_files/figure-html/Figure 1-1.png) 
+![Fatalities Figure](PA2_template_files/figure-html/FatalitiesFigure-1.png) 
 
 
 
@@ -374,39 +369,39 @@ The injuries from  1950 - 2011 are ranked as follows:
 
 
 ```r
-injuries <- xtable(pop_injuries[pop_injuries$Injuries.Count != 0,] )
-print(injuries, type="html")
+injuries <- xtable(pop_injuries[pop_injuries$Injuries.Count != 0,], digits = c(0,0,0,0,0,0,0,0) )
+print(injuries, type="html", include.rownames=FALSE)
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Wed Nov 18 13:41:12 2015 -->
+<!-- Wed Nov 18 20:10:13 2015 -->
 <table border=1>
-<tr> <th>  </th> <th> EnvTypeGroup </th> <th> n </th> <th> Injuries.Count </th> <th> Injuries.Mean </th> <th> Injuries.Median </th> <th> Injuries.Min </th> <th> Injuries.Max </th>  </tr>
-  <tr> <td align="right"> 1 </td> <td> Tornado/Waterspout </td> <td align="right"> 71548 </td> <td align="right"> 91439.00 </td> <td align="right"> 1.28 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1700.00 </td> </tr>
-  <tr> <td align="right"> 2 </td> <td> Wind </td> <td align="right"> 351097 </td> <td align="right"> 11384.00 </td> <td align="right"> 0.03 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 89.00 </td> </tr>
-  <tr> <td align="right"> 3 </td> <td> Heat </td> <td align="right"> 3013 </td> <td align="right"> 9228.00 </td> <td align="right"> 3.06 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 519.00 </td> </tr>
-  <tr> <td align="right"> 4 </td> <td> Flooding </td> <td align="right"> 85229 </td> <td align="right"> 8673.00 </td> <td align="right"> 0.10 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 800.00 </td> </tr>
-  <tr> <td align="right"> 5 </td> <td> Wintery Mix </td> <td align="right"> 40059 </td> <td align="right"> 5585.00 </td> <td align="right"> 0.14 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1568.00 </td> </tr>
-  <tr> <td align="right"> 6 </td> <td> Lightning </td> <td align="right"> 15770 </td> <td align="right"> 5232.00 </td> <td align="right"> 0.33 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 51.00 </td> </tr>
-  <tr> <td align="right"> 7 </td> <td> Fire </td> <td align="right"> 4260 </td> <td align="right"> 1608.00 </td> <td align="right"> 0.38 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 150.00 </td> </tr>
-  <tr> <td align="right"> 8 </td> <td> Hail </td> <td align="right"> 289281 </td> <td align="right"> 1371.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 109.00 </td> </tr>
-  <tr> <td align="right"> 9 </td> <td> Hurricane </td> <td align="right"> 301 </td> <td align="right"> 1333.00 </td> <td align="right"> 4.43 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 780.00 </td> </tr>
-  <tr> <td align="right"> 10 </td> <td> Fog </td> <td align="right"> 1834 </td> <td align="right"> 1076.00 </td> <td align="right"> 0.59 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 78.00 </td> </tr>
-  <tr> <td align="right"> 11 </td> <td> Blizzard </td> <td align="right"> 2755 </td> <td align="right"> 818.00 </td> <td align="right"> 0.30 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 385.00 </td> </tr>
-  <tr> <td align="right"> 12 </td> <td> Rip Current </td> <td align="right"> 777 </td> <td align="right"> 529.00 </td> <td align="right"> 0.68 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 35.00 </td> </tr>
-  <tr> <td align="right"> 13 </td> <td> Dust Storm </td> <td align="right"> 585 </td> <td align="right"> 483.00 </td> <td align="right"> 0.83 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 40.00 </td> </tr>
-  <tr> <td align="right"> 14 </td> <td> Tropical Storm </td> <td align="right"> 697 </td> <td align="right"> 383.00 </td> <td align="right"> 0.55 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 200.00 </td> </tr>
-  <tr> <td align="right"> 15 </td> <td> Cold </td> <td align="right"> 4292 </td> <td align="right"> 324.00 </td> <td align="right"> 0.08 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 129.00 </td> </tr>
-  <tr> <td align="right"> 16 </td> <td> Coastal Flooding </td> <td align="right"> 2494 </td> <td align="right"> 306.00 </td> <td align="right"> 0.12 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 55.00 </td> </tr>
-  <tr> <td align="right"> 17 </td> <td> Rain </td> <td align="right"> 11954 </td> <td align="right"> 280.00 </td> <td align="right"> 0.02 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 32.00 </td> </tr>
-  <tr> <td align="right"> 18 </td> <td> Avalanche </td> <td align="right"> 388 </td> <td align="right"> 171.00 </td> <td align="right"> 0.44 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 11.00 </td> </tr>
-  <tr> <td align="right"> 19 </td> <td> Tsunami </td> <td align="right">  20 </td> <td align="right"> 129.00 </td> <td align="right"> 6.45 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 129.00 </td> </tr>
-  <tr> <td align="right"> 20 </td> <td> Thunderstorm </td> <td align="right"> 12232 </td> <td align="right"> 63.00 </td> <td align="right"> 0.01 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 13.00 </td> </tr>
-  <tr> <td align="right"> 21 </td> <td> Landslide </td> <td align="right"> 652 </td> <td align="right"> 55.00 </td> <td align="right"> 0.08 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 10.00 </td> </tr>
-  <tr> <td align="right"> 22 </td> <td> Heavy Seas </td> <td align="right">  20 </td> <td align="right"> 28.00 </td> <td align="right"> 1.40 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 20.00 </td> </tr>
-  <tr> <td align="right"> 23 </td> <td> Drought </td> <td align="right"> 2599 </td> <td align="right"> 19.00 </td> <td align="right"> 0.01 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 15.00 </td> </tr>
-  <tr> <td align="right"> 24 </td> <td> Marine Mishap </td> <td align="right">   3 </td> <td align="right"> 7.00 </td> <td align="right"> 2.33 </td> <td align="right"> 2.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5.00 </td> </tr>
-  <tr> <td align="right"> 25 </td> <td> Unknown </td> <td align="right"> 131 </td> <td align="right"> 4.00 </td> <td align="right"> 0.03 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 4.00 </td> </tr>
+<tr> <th> EnvTypeGroup </th> <th> n </th> <th> Injuries.Count </th> <th> Injuries.Mean </th> <th> Injuries.Median </th> <th> Injuries.Min </th> <th> Injuries.Max </th>  </tr>
+  <tr> <td> Tornado/Waterspout </td> <td align="right"> 71548 </td> <td align="right"> 91439 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1700 </td> </tr>
+  <tr> <td> Wind </td> <td align="right"> 351097 </td> <td align="right"> 11384 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 89 </td> </tr>
+  <tr> <td> Heat </td> <td align="right"> 3013 </td> <td align="right"> 9228 </td> <td align="right"> 3 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 519 </td> </tr>
+  <tr> <td> Flooding </td> <td align="right"> 85229 </td> <td align="right"> 8673 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 800 </td> </tr>
+  <tr> <td> Wintery Mix </td> <td align="right"> 40059 </td> <td align="right"> 5585 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1568 </td> </tr>
+  <tr> <td> Lightning </td> <td align="right"> 15770 </td> <td align="right"> 5232 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 51 </td> </tr>
+  <tr> <td> Fire </td> <td align="right"> 4260 </td> <td align="right"> 1608 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 150 </td> </tr>
+  <tr> <td> Hail </td> <td align="right"> 289281 </td> <td align="right"> 1371 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 109 </td> </tr>
+  <tr> <td> Hurricane </td> <td align="right"> 301 </td> <td align="right"> 1333 </td> <td align="right"> 4 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 780 </td> </tr>
+  <tr> <td> Fog </td> <td align="right"> 1834 </td> <td align="right"> 1076 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 78 </td> </tr>
+  <tr> <td> Blizzard </td> <td align="right"> 2755 </td> <td align="right"> 818 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 385 </td> </tr>
+  <tr> <td> Rip Current </td> <td align="right"> 777 </td> <td align="right"> 529 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 35 </td> </tr>
+  <tr> <td> Dust Storm </td> <td align="right"> 585 </td> <td align="right"> 483 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 40 </td> </tr>
+  <tr> <td> Tropical Storm </td> <td align="right"> 697 </td> <td align="right"> 383 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 200 </td> </tr>
+  <tr> <td> Cold </td> <td align="right"> 4292 </td> <td align="right"> 324 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 129 </td> </tr>
+  <tr> <td> Coastal Flooding </td> <td align="right"> 2494 </td> <td align="right"> 306 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 55 </td> </tr>
+  <tr> <td> Rain </td> <td align="right"> 11954 </td> <td align="right"> 280 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 32 </td> </tr>
+  <tr> <td> Avalanche </td> <td align="right"> 388 </td> <td align="right"> 171 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 11 </td> </tr>
+  <tr> <td> Tsunami </td> <td align="right"> 20 </td> <td align="right"> 129 </td> <td align="right"> 6 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 129 </td> </tr>
+  <tr> <td> Thunderstorm </td> <td align="right"> 12232 </td> <td align="right"> 63 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 13 </td> </tr>
+  <tr> <td> Landslide </td> <td align="right"> 652 </td> <td align="right"> 55 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 10 </td> </tr>
+  <tr> <td> Heavy Seas </td> <td align="right"> 20 </td> <td align="right"> 28 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 20 </td> </tr>
+  <tr> <td> Drought </td> <td align="right"> 2599 </td> <td align="right"> 19 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 15 </td> </tr>
+  <tr> <td> Marine Mishap </td> <td align="right"> 3 </td> <td align="right"> 7 </td> <td align="right"> 2 </td> <td align="right"> 2 </td> <td align="right"> 0 </td> <td align="right"> 5 </td> </tr>
+  <tr> <td> Unknown </td> <td align="right"> 131 </td> <td align="right"> 4 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 4 </td> </tr>
    </table>
 
 
@@ -423,7 +418,7 @@ pop_injuries_yr <-
 ```
 
 
-Top fatality event groups by year show that the data may be incomplete or have quality issues since several of the high count event groups have no injuries prior to 1990
+The top Injuries by Event Groups by Year figure shows that the data may be incomplete or have quality issues since several of the high count event groups have no injuries prior to 1990
 
 
 ```r
@@ -431,17 +426,19 @@ ggplot( data = pop_injuries_yr
         , aes(x = Year
         , y = Injuries.Count, colour = EnvTypeGroup)) +
         geom_point() + 
+        scale_y_continuous(breaks=seq(1950, 2011, 5)) +
         facet_grid(EnvTypeGroup ~ .) +
         geom_line() + 
-        theme(legend.position = "bottom")
+        theme(legend.position = "bottom") +
+        ggtitle("Injuries by Event Groups by Year")
 ```
 
-![](PA2_template_files/figure-html/Figure 2-1.png) 
+![InjuriesFigure](PA2_template_files/figure-html/InjuriesFigure-1.png) 
 
 
 
 
-#### Economic Impacts
+#### Economic Impact Statistics (displayed in Millions)
 
 
 ```r
@@ -498,44 +495,44 @@ Total property damages from 1950 - 2011 (assuming millions for ambiguous cost un
 
 
 ```r
-PropertyDamage <- xtable(cost_PropertyDamage[cost_PropertyDamage$PropertyDamageAmt.Sum != 0,] )
-print(PropertyDamage, type="html")
+PropertyDamage <- xtable(cost_PropertyDamage[cost_PropertyDamage$PropertyDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
+print(PropertyDamage, type="html", include.rownames=FALSE)
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Wed Nov 18 13:41:16 2015 -->
+<!-- Wed Nov 18 20:10:17 2015 -->
 <table border=1>
-<tr> <th>  </th> <th> EnvTypeGroup </th> <th> n </th> <th> PropertyDamageAmt.Sum </th> <th> PropertyDamageAmt.Mean </th> <th> PropertyDamageAmt.Median </th> <th> PropertyDamageAmt.Min_ </th> <th> PropertyDamageAmt.Max </th>  </tr>
-  <tr> <td align="right"> 1 </td> <td> Hurricane </td> <td align="right"> 301 </td> <td align="right"> 85356410010.00 </td> <td align="right"> 283576112.99 </td> <td align="right"> 1000000.00 </td> <td align="right"> 0.00 </td> <td align="right"> 16930000000.00 </td> </tr>
-  <tr> <td align="right"> 2 </td> <td> Tornado/Waterspout </td> <td align="right"> 71548 </td> <td align="right"> 57301564030.00 </td> <td align="right"> 800882.82 </td> <td align="right"> 500.00 </td> <td align="right"> 0.00 </td> <td align="right"> 2800000000.00 </td> </tr>
-  <tr> <td align="right"> 3 </td> <td> Flooding </td> <td align="right"> 85229 </td> <td align="right"> 52738382960.00 </td> <td align="right"> 618784.49 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5000000000.00 </td> </tr>
-  <tr> <td align="right"> 4 </td> <td> Coastal Flooding </td> <td align="right"> 2494 </td> <td align="right"> 48676894560.00 </td> <td align="right"> 19517600.06 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 31300000000.00 </td> </tr>
-  <tr> <td align="right"> 5 </td> <td> Wind </td> <td align="right"> 351097 </td> <td align="right"> 22496800370.00 </td> <td align="right"> 64075.74 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1300000000.00 </td> </tr>
-  <tr> <td align="right"> 6 </td> <td> Hail </td> <td align="right"> 289281 </td> <td align="right"> 16297248720.00 </td> <td align="right"> 56337.09 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1800000000.00 </td> </tr>
-  <tr> <td align="right"> 7 </td> <td> Wintery Mix </td> <td align="right"> 40059 </td> <td align="right"> 11843739500.00 </td> <td align="right"> 295657.39 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5000000000.00 </td> </tr>
-  <tr> <td align="right"> 8 </td> <td> Fire </td> <td align="right"> 4260 </td> <td align="right"> 8496728500.00 </td> <td align="right"> 1994537.21 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1500000000.00 </td> </tr>
-  <tr> <td align="right"> 9 </td> <td> Tropical Storm </td> <td align="right"> 697 </td> <td align="right"> 7714390550.00 </td> <td align="right"> 11067992.18 </td> <td align="right"> 5000.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5150000000.00 </td> </tr>
-  <tr> <td align="right"> 10 </td> <td> Rain </td> <td align="right"> 11954 </td> <td align="right"> 3243854190.00 </td> <td align="right"> 271361.40 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 2500000000.00 </td> </tr>
-  <tr> <td align="right"> 11 </td> <td> Thunderstorm </td> <td align="right"> 12232 </td> <td align="right"> 1228283000.00 </td> <td align="right"> 100415.55 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1200000000.00 </td> </tr>
-  <tr> <td align="right"> 12 </td> <td> Lightning </td> <td align="right"> 15770 </td> <td align="right"> 1100442280.00 </td> <td align="right"> 69780.74 </td> <td align="right"> 5000.00 </td> <td align="right"> 0.00 </td> <td align="right"> 37000000.00 </td> </tr>
-  <tr> <td align="right"> 13 </td> <td> Drought </td> <td align="right"> 2599 </td> <td align="right"> 1046306000.00 </td> <td align="right"> 402580.22 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 645150000.00 </td> </tr>
-  <tr> <td align="right"> 14 </td> <td> Blizzard </td> <td align="right"> 2755 </td> <td align="right"> 659883950.00 </td> <td align="right"> 239522.30 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 102000000.00 </td> </tr>
-  <tr> <td align="right"> 15 </td> <td> Landslide </td> <td align="right"> 652 </td> <td align="right"> 327452100.00 </td> <td align="right"> 502227.15 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 55900000.00 </td> </tr>
-  <tr> <td align="right"> 16 </td> <td> Cold </td> <td align="right"> 4292 </td> <td align="right"> 155034400.00 </td> <td align="right"> 36121.71 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 50000000.00 </td> </tr>
-  <tr> <td align="right"> 17 </td> <td> Tsunami </td> <td align="right">  20 </td> <td align="right"> 144062000.00 </td> <td align="right"> 7203100.00 </td> <td align="right"> 115000.00 </td> <td align="right"> 0.00 </td> <td align="right"> 81000000.00 </td> </tr>
-  <tr> <td align="right"> 18 </td> <td> Fog </td> <td align="right"> 1834 </td> <td align="right"> 22829500.00 </td> <td align="right"> 12447.93 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1500000.00 </td> </tr>
-  <tr> <td align="right"> 19 </td> <td> Heat </td> <td align="right"> 3013 </td> <td align="right"> 20125750.00 </td> <td align="right"> 6679.64 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 3800000.00 </td> </tr>
-  <tr> <td align="right"> 20 </td> <td> Avalanche </td> <td align="right"> 388 </td> <td align="right"> 8721800.00 </td> <td align="right"> 22478.87 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5000000.00 </td> </tr>
-  <tr> <td align="right"> 21 </td> <td> Dust Storm </td> <td align="right"> 585 </td> <td align="right"> 6318130.00 </td> <td align="right"> 10800.22 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 640000.00 </td> </tr>
-  <tr> <td align="right"> 22 </td> <td> Tropical Depression </td> <td align="right">  60 </td> <td align="right"> 1737000.00 </td> <td align="right"> 28950.00 </td> <td align="right"> 6500.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1000000.00 </td> </tr>
-  <tr> <td align="right"> 23 </td> <td> Dam Failure </td> <td align="right">   5 </td> <td align="right"> 1002000.00 </td> <td align="right"> 200400.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1000000.00 </td> </tr>
-  <tr> <td align="right"> 24 </td> <td> Seiche </td> <td align="right">  21 </td> <td align="right"> 980000.00 </td> <td align="right"> 46666.67 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 750000.00 </td> </tr>
-  <tr> <td align="right"> 25 </td> <td> Volcano </td> <td align="right">  30 </td> <td align="right"> 500000.00 </td> <td align="right"> 16666.67 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 300000.00 </td> </tr>
-  <tr> <td align="right"> 26 </td> <td> Low Tide </td> <td align="right"> 174 </td> <td align="right"> 320000.00 </td> <td align="right"> 1839.08 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 200000.00 </td> </tr>
-  <tr> <td align="right"> 27 </td> <td> Rip Current </td> <td align="right"> 777 </td> <td align="right"> 163000.00 </td> <td align="right"> 209.78 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 80000.00 </td> </tr>
-  <tr> <td align="right"> 28 </td> <td> Unknown </td> <td align="right"> 131 </td> <td align="right"> 65500.00 </td> <td align="right"> 500.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 50000.00 </td> </tr>
-  <tr> <td align="right"> 29 </td> <td> Heavy Seas </td> <td align="right">  20 </td> <td align="right"> 65000.00 </td> <td align="right"> 3250.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 50000.00 </td> </tr>
-  <tr> <td align="right"> 30 </td> <td> Marine Mishap </td> <td align="right">   3 </td> <td align="right"> 50000.00 </td> <td align="right"> 16666.67 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 50000.00 </td> </tr>
+<tr> <th> EnvTypeGroup </th> <th> n </th> <th> PropertyDamageAmt.Sum </th> <th> PropertyDamageAmt.Mean </th> <th> PropertyDamageAmt.Median </th> <th> PropertyDamageAmt.Min_ </th> <th> PropertyDamageAmt.Max </th>  </tr>
+  <tr> <td> Hurricane </td> <td align="right"> 301 </td> <td align="right"> 85356 </td> <td align="right"> 284 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 16930 </td> </tr>
+  <tr> <td> Tornado/Waterspout </td> <td align="right"> 71548 </td> <td align="right"> 57302 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 2800 </td> </tr>
+  <tr> <td> Flooding </td> <td align="right"> 85229 </td> <td align="right"> 52738 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 5000 </td> </tr>
+  <tr> <td> Coastal Flooding </td> <td align="right"> 2494 </td> <td align="right"> 48677 </td> <td align="right"> 20 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 31300 </td> </tr>
+  <tr> <td> Wind </td> <td align="right"> 351097 </td> <td align="right"> 22497 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1300 </td> </tr>
+  <tr> <td> Hail </td> <td align="right"> 289281 </td> <td align="right"> 16297 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1800 </td> </tr>
+  <tr> <td> Wintery Mix </td> <td align="right"> 40059 </td> <td align="right"> 11844 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 5000 </td> </tr>
+  <tr> <td> Fire </td> <td align="right"> 4260 </td> <td align="right"> 8497 </td> <td align="right"> 2 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1500 </td> </tr>
+  <tr> <td> Tropical Storm </td> <td align="right"> 697 </td> <td align="right"> 7714 </td> <td align="right"> 11 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 5150 </td> </tr>
+  <tr> <td> Rain </td> <td align="right"> 11954 </td> <td align="right"> 3244 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 2500 </td> </tr>
+  <tr> <td> Thunderstorm </td> <td align="right"> 12232 </td> <td align="right"> 1228 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1200 </td> </tr>
+  <tr> <td> Lightning </td> <td align="right"> 15770 </td> <td align="right"> 1100 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 37 </td> </tr>
+  <tr> <td> Drought </td> <td align="right"> 2599 </td> <td align="right"> 1046 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 645 </td> </tr>
+  <tr> <td> Blizzard </td> <td align="right"> 2755 </td> <td align="right"> 660 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 102 </td> </tr>
+  <tr> <td> Landslide </td> <td align="right"> 652 </td> <td align="right"> 327 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 56 </td> </tr>
+  <tr> <td> Cold </td> <td align="right"> 4292 </td> <td align="right"> 155 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 50 </td> </tr>
+  <tr> <td> Tsunami </td> <td align="right"> 20 </td> <td align="right"> 144 </td> <td align="right"> 7 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 81 </td> </tr>
+  <tr> <td> Fog </td> <td align="right"> 1834 </td> <td align="right"> 23 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 2 </td> </tr>
+  <tr> <td> Heat </td> <td align="right"> 3013 </td> <td align="right"> 20 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 4 </td> </tr>
+  <tr> <td> Avalanche </td> <td align="right"> 388 </td> <td align="right"> 9 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 5 </td> </tr>
+  <tr> <td> Dust Storm </td> <td align="right"> 585 </td> <td align="right"> 6 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1 </td> </tr>
+  <tr> <td> Tropical Depression </td> <td align="right"> 60 </td> <td align="right"> 2 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1 </td> </tr>
+  <tr> <td> Dam Failure </td> <td align="right"> 5 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1 </td> </tr>
+  <tr> <td> Seiche </td> <td align="right"> 21 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1 </td> </tr>
+  <tr> <td> Volcano </td> <td align="right"> 30 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> </tr>
+  <tr> <td> Low Tide </td> <td align="right"> 174 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> </tr>
+  <tr> <td> Rip Current </td> <td align="right"> 777 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> </tr>
+  <tr> <td> Unknown </td> <td align="right"> 131 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> </tr>
+  <tr> <td> Heavy Seas </td> <td align="right"> 20 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> </tr>
+  <tr> <td> Marine Mishap </td> <td align="right"> 3 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> </tr>
    </table>
 
 Retaining only the records with high reliabiltiy cost estimates doesn't signnificantly change the relative rankings on property damage: 
@@ -543,72 +540,72 @@ Retaining only the records with high reliabiltiy cost estimates doesn't signnifi
 
 ```r
 PropertyDamageHigh <- xtable(cost_PropertyDamage_High[cost_PropertyDamage_High$PropertyDamageAmt.Sum != 0,] )
-print(PropertyDamageHigh, type="html")
+print(PropertyDamageHigh, type="html", include.rownames=FALSE)
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Wed Nov 18 13:41:16 2015 -->
+<!-- Wed Nov 18 20:10:17 2015 -->
 <table border=1>
-<tr> <th>  </th> <th> EnvTypeGroup </th> <th> n </th> <th> PropertyDamageAmt.Sum </th> <th> PropertyDamageAmt.Mean </th> <th> PropertyDamageAmt.Median </th> <th> PropertyDamageAmt.Min_ </th> <th> PropertyDamageAmt.Max </th>  </tr>
-  <tr> <td align="right"> 1 </td> <td> Hurricane </td> <td align="right"> 114 </td> <td align="right"> 38996883000.00 </td> <td align="right"> 342077921.05 </td> <td align="right"> 12750000.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5880000000.00 </td> </tr>
-  <tr> <td align="right"> 2 </td> <td> Flooding </td> <td align="right"> 35599 </td> <td align="right"> 30832150730.00 </td> <td align="right"> 866095.98 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5000000000.00 </td> </tr>
-  <tr> <td align="right"> 3 </td> <td> Tornado/Waterspout </td> <td align="right"> 12823 </td> <td align="right"> 16172053240.00 </td> <td align="right"> 1261175.48 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 2800000000.00 </td> </tr>
-  <tr> <td align="right"> 4 </td> <td> Hail </td> <td align="right"> 80178 </td> <td align="right"> 7992338190.00 </td> <td align="right"> 99682.43 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1800000000.00 </td> </tr>
-  <tr> <td align="right"> 5 </td> <td> Wind </td> <td align="right"> 102195 </td> <td align="right"> 7092587390.00 </td> <td align="right"> 69402.49 </td> <td align="right"> 700.00 </td> <td align="right"> 0.00 </td> <td align="right"> 929000000.00 </td> </tr>
-  <tr> <td align="right"> 6 </td> <td> Coastal Flooding </td> <td align="right"> 1073 </td> <td align="right"> 4919461060.00 </td> <td align="right"> 4584772.66 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 4000000000.00 </td> </tr>
-  <tr> <td align="right"> 7 </td> <td> Fire </td> <td align="right"> 1824 </td> <td align="right"> 3552827470.00 </td> <td align="right"> 1947822.08 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1040000000.00 </td> </tr>
-  <tr> <td align="right"> 8 </td> <td> Wintery Mix </td> <td align="right"> 21063 </td> <td align="right"> 2228640500.00 </td> <td align="right"> 105808.31 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 750000000.00 </td> </tr>
-  <tr> <td align="right"> 9 </td> <td> Tropical Storm </td> <td align="right"> 421 </td> <td align="right"> 1062091350.00 </td> <td align="right"> 2522782.30 </td> <td align="right"> 5000.00 </td> <td align="right"> 0.00 </td> <td align="right"> 530470000.00 </td> </tr>
-  <tr> <td align="right"> 10 </td> <td> Rain </td> <td align="right"> 5269 </td> <td align="right"> 347421930.00 </td> <td align="right"> 65936.98 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 70000000.00 </td> </tr>
-  <tr> <td align="right"> 11 </td> <td> Lightning </td> <td align="right"> 4168 </td> <td align="right"> 315273980.00 </td> <td align="right"> 75641.55 </td> <td align="right"> 10000.00 </td> <td align="right"> 0.00 </td> <td align="right"> 15000000.00 </td> </tr>
-  <tr> <td align="right"> 12 </td> <td> Drought </td> <td align="right"> 1401 </td> <td align="right"> 233921000.00 </td> <td align="right"> 166967.17 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 23000000.00 </td> </tr>
-  <tr> <td align="right"> 13 </td> <td> Landslide </td> <td align="right"> 320 </td> <td align="right"> 150303500.00 </td> <td align="right"> 469698.44 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 48000000.00 </td> </tr>
-  <tr> <td align="right"> 14 </td> <td> Tsunami </td> <td align="right">  19 </td> <td align="right"> 144062000.00 </td> <td align="right"> 7582210.53 </td> <td align="right"> 150000.00 </td> <td align="right"> 0.00 </td> <td align="right"> 81000000.00 </td> </tr>
-  <tr> <td align="right"> 15 </td> <td> Blizzard </td> <td align="right"> 1742 </td> <td align="right"> 94981000.00 </td> <td align="right"> 54524.11 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 50000000.00 </td> </tr>
-  <tr> <td align="right"> 16 </td> <td> Cold </td> <td align="right"> 2351 </td> <td align="right"> 22063000.00 </td> <td align="right"> 9384.52 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5000000.00 </td> </tr>
-  <tr> <td align="right"> 17 </td> <td> Dust Storm </td> <td align="right"> 254 </td> <td align="right"> 3830130.00 </td> <td align="right"> 15079.25 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 640000.00 </td> </tr>
-  <tr> <td align="right"> 18 </td> <td> Heat </td> <td align="right"> 1339 </td> <td align="right"> 3218200.00 </td> <td align="right"> 2403.44 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1500000.00 </td> </tr>
-  <tr> <td align="right"> 19 </td> <td> Fog </td> <td align="right"> 921 </td> <td align="right"> 2874000.00 </td> <td align="right"> 3120.52 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 700000.00 </td> </tr>
-  <tr> <td align="right"> 20 </td> <td> Avalanche </td> <td align="right"> 154 </td> <td align="right"> 2385800.00 </td> <td align="right"> 15492.21 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1100000.00 </td> </tr>
-  <tr> <td align="right"> 21 </td> <td> Tropical Depression </td> <td align="right">  27 </td> <td align="right"> 1302000.00 </td> <td align="right"> 48222.22 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1000000.00 </td> </tr>
-  <tr> <td align="right"> 22 </td> <td> Thunderstorm </td> <td align="right"> 5819 </td> <td align="right"> 1200400.00 </td> <td align="right"> 206.29 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 500000.00 </td> </tr>
-  <tr> <td align="right"> 23 </td> <td> Low Tide </td> <td align="right"> 174 </td> <td align="right"> 320000.00 </td> <td align="right"> 1839.08 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 200000.00 </td> </tr>
-  <tr> <td align="right"> 24 </td> <td> Seiche </td> <td align="right">   7 </td> <td align="right"> 100000.00 </td> <td align="right"> 14285.71 </td> <td align="right"> 10000.00 </td> <td align="right"> 0.00 </td> <td align="right"> 50000.00 </td> </tr>
-  <tr> <td align="right"> 25 </td> <td> Rip Current </td> <td align="right"> 277 </td> <td align="right"> 1000.00 </td> <td align="right"> 3.61 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1000.00 </td> </tr>
+<tr> <th> EnvTypeGroup </th> <th> n </th> <th> PropertyDamageAmt.Sum </th> <th> PropertyDamageAmt.Mean </th> <th> PropertyDamageAmt.Median </th> <th> PropertyDamageAmt.Min_ </th> <th> PropertyDamageAmt.Max </th>  </tr>
+  <tr> <td> Hurricane </td> <td align="right"> 114 </td> <td align="right"> 38996.88 </td> <td align="right"> 342.08 </td> <td align="right"> 12.75 </td> <td align="right"> 0.00 </td> <td align="right"> 5880.00 </td> </tr>
+  <tr> <td> Flooding </td> <td align="right"> 35599 </td> <td align="right"> 30832.15 </td> <td align="right"> 0.87 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5000.00 </td> </tr>
+  <tr> <td> Tornado/Waterspout </td> <td align="right"> 12823 </td> <td align="right"> 16172.05 </td> <td align="right"> 1.26 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 2800.00 </td> </tr>
+  <tr> <td> Hail </td> <td align="right"> 80178 </td> <td align="right"> 7992.34 </td> <td align="right"> 0.10 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1800.00 </td> </tr>
+  <tr> <td> Wind </td> <td align="right"> 102195 </td> <td align="right"> 7092.59 </td> <td align="right"> 0.07 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 929.00 </td> </tr>
+  <tr> <td> Coastal Flooding </td> <td align="right"> 1073 </td> <td align="right"> 4919.46 </td> <td align="right"> 4.58 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 4000.00 </td> </tr>
+  <tr> <td> Fire </td> <td align="right"> 1824 </td> <td align="right"> 3552.83 </td> <td align="right"> 1.95 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1040.00 </td> </tr>
+  <tr> <td> Wintery Mix </td> <td align="right"> 21063 </td> <td align="right"> 2228.64 </td> <td align="right"> 0.11 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 750.00 </td> </tr>
+  <tr> <td> Tropical Storm </td> <td align="right"> 421 </td> <td align="right"> 1062.09 </td> <td align="right"> 2.52 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 530.47 </td> </tr>
+  <tr> <td> Rain </td> <td align="right"> 5269 </td> <td align="right"> 347.42 </td> <td align="right"> 0.07 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 70.00 </td> </tr>
+  <tr> <td> Lightning </td> <td align="right"> 4168 </td> <td align="right"> 315.27 </td> <td align="right"> 0.08 </td> <td align="right"> 0.01 </td> <td align="right"> 0.00 </td> <td align="right"> 15.00 </td> </tr>
+  <tr> <td> Drought </td> <td align="right"> 1401 </td> <td align="right"> 233.92 </td> <td align="right"> 0.17 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 23.00 </td> </tr>
+  <tr> <td> Landslide </td> <td align="right"> 320 </td> <td align="right"> 150.30 </td> <td align="right"> 0.47 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 48.00 </td> </tr>
+  <tr> <td> Tsunami </td> <td align="right">  19 </td> <td align="right"> 144.06 </td> <td align="right"> 7.58 </td> <td align="right"> 0.15 </td> <td align="right"> 0.00 </td> <td align="right"> 81.00 </td> </tr>
+  <tr> <td> Blizzard </td> <td align="right"> 1742 </td> <td align="right"> 94.98 </td> <td align="right"> 0.05 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 50.00 </td> </tr>
+  <tr> <td> Cold </td> <td align="right"> 2351 </td> <td align="right"> 22.06 </td> <td align="right"> 0.01 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5.00 </td> </tr>
+  <tr> <td> Dust Storm </td> <td align="right"> 254 </td> <td align="right"> 3.83 </td> <td align="right"> 0.02 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.64 </td> </tr>
+  <tr> <td> Heat </td> <td align="right"> 1339 </td> <td align="right"> 3.22 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1.50 </td> </tr>
+  <tr> <td> Fog </td> <td align="right"> 921 </td> <td align="right"> 2.87 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.70 </td> </tr>
+  <tr> <td> Avalanche </td> <td align="right"> 154 </td> <td align="right"> 2.39 </td> <td align="right"> 0.02 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1.10 </td> </tr>
+  <tr> <td> Tropical Depression </td> <td align="right">  27 </td> <td align="right"> 1.30 </td> <td align="right"> 0.05 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1.00 </td> </tr>
+  <tr> <td> Thunderstorm </td> <td align="right"> 5819 </td> <td align="right"> 1.20 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.50 </td> </tr>
+  <tr> <td> Low Tide </td> <td align="right"> 174 </td> <td align="right"> 0.32 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.20 </td> </tr>
+  <tr> <td> Seiche </td> <td align="right">   7 </td> <td align="right"> 0.10 </td> <td align="right"> 0.01 </td> <td align="right"> 0.01 </td> <td align="right"> 0.00 </td> <td align="right"> 0.05 </td> </tr>
+  <tr> <td> Rip Current </td> <td align="right"> 277 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> </tr>
    </table>
 
 Total crop damages from 1950 - 2011 (assuming millions for ambiguous cost units) are as follows:
 
 
 ```r
-CropDamage <- xtable(cost_CropDamage[cost_CropDamage$CropDamageAmt.Sum != 0,] )
-print(CropDamage, type="html")
+CropDamage <- xtable(cost_CropDamage[cost_CropDamage$CropDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
+print(CropDamage, type="html", include.rownames=FALSE)
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Wed Nov 18 13:41:16 2015 -->
+<!-- Wed Nov 18 20:10:17 2015 -->
 <table border=1>
-<tr> <th>  </th> <th> EnvTypeGroup </th> <th> n_date </th> <th> CropDamageAmt.Sum </th> <th> CropDamageAmt.Mean </th> <th> CropDamageAmt.Median </th> <th> CropDamageAmt.Min </th> <th> CropDamageAmt.Max </th>  </tr>
-  <tr> <td align="right"> 1 </td> <td> Drought </td> <td align="right"> 2599 </td> <td align="right"> 13972621780.00 </td> <td align="right"> 5376153.05 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1000000000.00 </td> </tr>
-  <tr> <td align="right"> 2 </td> <td> Flooding </td> <td align="right"> 85229 </td> <td align="right"> 12350638200.00 </td> <td align="right"> 144911.22 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5000000000.00 </td> </tr>
-  <tr> <td align="right"> 3 </td> <td> Hurricane </td> <td align="right"> 301 </td> <td align="right"> 5516117800.00 </td> <td align="right"> 18325972.76 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1510000000.00 </td> </tr>
-  <tr> <td align="right"> 4 </td> <td> Wintery Mix </td> <td align="right"> 40059 </td> <td align="right"> 5209241400.00 </td> <td align="right"> 130039.23 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5000000000.00 </td> </tr>
-  <tr> <td align="right"> 5 </td> <td> Cold </td> <td align="right"> 4292 </td> <td align="right"> 3428826500.00 </td> <td align="right"> 798887.81 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 596000000.00 </td> </tr>
-  <tr> <td align="right"> 6 </td> <td> Hail </td> <td align="right"> 289281 </td> <td align="right"> 3069937600.00 </td> <td align="right"> 10612.30 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 70000000.00 </td> </tr>
-  <tr> <td align="right"> 7 </td> <td> Wind </td> <td align="right"> 351097 </td> <td align="right"> 2070730850.00 </td> <td align="right"> 5897.89 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 175000000.00 </td> </tr>
-  <tr> <td align="right"> 8 </td> <td> Rain </td> <td align="right"> 11954 </td> <td align="right"> 948515800.00 </td> <td align="right"> 79347.15 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 200000000.00 </td> </tr>
-  <tr> <td align="right"> 9 </td> <td> Heat </td> <td align="right"> 3013 </td> <td align="right"> 904423500.00 </td> <td align="right"> 300173.75 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 492400000.00 </td> </tr>
-  <tr> <td align="right"> 10 </td> <td> Tropical Storm </td> <td align="right"> 697 </td> <td align="right"> 694896000.00 </td> <td align="right"> 996981.35 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 200000000.00 </td> </tr>
-  <tr> <td align="right"> 11 </td> <td> Tornado/Waterspout </td> <td align="right"> 71548 </td> <td align="right"> 574961360.00 </td> <td align="right"> 8036.02 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 70000000.00 </td> </tr>
-  <tr> <td align="right"> 12 </td> <td> Fire </td> <td align="right"> 4260 </td> <td align="right"> 403281630.00 </td> <td align="right"> 94667.05 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 90000000.00 </td> </tr>
-  <tr> <td align="right"> 13 </td> <td> Blizzard </td> <td align="right"> 2755 </td> <td align="right"> 112060000.00 </td> <td align="right"> 40675.14 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 50000000.00 </td> </tr>
-  <tr> <td align="right"> 14 </td> <td> Thunderstorm </td> <td align="right"> 12232 </td> <td align="right"> 46265000.00 </td> <td align="right"> 3782.29 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 26000000.00 </td> </tr>
-  <tr> <td align="right"> 15 </td> <td> Landslide </td> <td align="right"> 652 </td> <td align="right"> 20017000.00 </td> <td align="right"> 30700.92 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 20000000.00 </td> </tr>
-  <tr> <td align="right"> 16 </td> <td> Lightning </td> <td align="right"> 15770 </td> <td align="right"> 12092090.00 </td> <td align="right"> 766.78 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 3500000.00 </td> </tr>
-  <tr> <td align="right"> 17 </td> <td> Dust Storm </td> <td align="right"> 585 </td> <td align="right"> 3600000.00 </td> <td align="right"> 6153.85 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1500000.00 </td> </tr>
-  <tr> <td align="right"> 18 </td> <td> Unknown </td> <td align="right"> 131 </td> <td align="right"> 1034400.00 </td> <td align="right"> 7896.18 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 34480.00 </td> </tr>
-  <tr> <td align="right"> 19 </td> <td> Coastal Flooding </td> <td align="right"> 2494 </td> <td align="right"> 911000.00 </td> <td align="right"> 365.28 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 750000.00 </td> </tr>
-  <tr> <td align="right"> 20 </td> <td> Tsunami </td> <td align="right">  20 </td> <td align="right"> 20000.00 </td> <td align="right"> 1000.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 20000.00 </td> </tr>
+<tr> <th> EnvTypeGroup </th> <th> n_date </th> <th> CropDamageAmt.Sum </th> <th> CropDamageAmt.Mean </th> <th> CropDamageAmt.Median </th> <th> CropDamageAmt.Min </th> <th> CropDamageAmt.Max </th>  </tr>
+  <tr> <td> Tornado/Waterspout </td> <td align="right"> 71548 </td> <td align="right"> 160000415 </td> <td align="right"> 2236 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 60000000 </td> </tr>
+  <tr> <td> Wind </td> <td align="right"> 351097 </td> <td align="right"> 88001983 </td> <td align="right"> 251 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 25000000 </td> </tr>
+  <tr> <td> Hail </td> <td align="right"> 289281 </td> <td align="right"> 23003047 </td> <td align="right"> 80 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 20000000 </td> </tr>
+  <tr> <td> Drought </td> <td align="right"> 2599 </td> <td align="right"> 13973 </td> <td align="right"> 5 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1000 </td> </tr>
+  <tr> <td> Flooding </td> <td align="right"> 85229 </td> <td align="right"> 12351 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 5000 </td> </tr>
+  <tr> <td> Hurricane </td> <td align="right"> 301 </td> <td align="right"> 5516 </td> <td align="right"> 18 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1510 </td> </tr>
+  <tr> <td> Wintery Mix </td> <td align="right"> 40059 </td> <td align="right"> 5209 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 5000 </td> </tr>
+  <tr> <td> Cold </td> <td align="right"> 4292 </td> <td align="right"> 3429 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 596 </td> </tr>
+  <tr> <td> Rain </td> <td align="right"> 11954 </td> <td align="right"> 949 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 200 </td> </tr>
+  <tr> <td> Heat </td> <td align="right"> 3013 </td> <td align="right"> 904 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 492 </td> </tr>
+  <tr> <td> Tropical Storm </td> <td align="right"> 697 </td> <td align="right"> 695 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 200 </td> </tr>
+  <tr> <td> Fire </td> <td align="right"> 4260 </td> <td align="right"> 403 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 90 </td> </tr>
+  <tr> <td> Blizzard </td> <td align="right"> 2755 </td> <td align="right"> 112 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 50 </td> </tr>
+  <tr> <td> Thunderstorm </td> <td align="right"> 12232 </td> <td align="right"> 46 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 26 </td> </tr>
+  <tr> <td> Landslide </td> <td align="right"> 652 </td> <td align="right"> 20 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 20 </td> </tr>
+  <tr> <td> Lightning </td> <td align="right"> 15770 </td> <td align="right"> 12 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 4 </td> </tr>
+  <tr> <td> Dust Storm </td> <td align="right"> 585 </td> <td align="right"> 4 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 2 </td> </tr>
+  <tr> <td> Unknown </td> <td align="right"> 131 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> </tr>
+  <tr> <td> Coastal Flooding </td> <td align="right"> 2494 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1 </td> </tr>
+  <tr> <td> Tsunami </td> <td align="right"> 20 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> </tr>
    </table>
 
 
@@ -616,34 +613,34 @@ Retaining only the records with high reliabiltiy cost extimates DOES signnifican
 
 
 ```r
-CropDamageHigh <- xtable(cost_CropDamage_High[cost_CropDamage$CropDamageAmt.Sum != 0,] )
+CropDamageHigh <- xtable(cost_CropDamage_High[cost_CropDamage$CropDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
 print(CropDamageHigh, type="html")
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Wed Nov 18 13:41:16 2015 -->
+<!-- Wed Nov 18 20:10:17 2015 -->
 <table border=1>
 <tr> <th>  </th> <th> EnvTypeGroup </th> <th> n_date </th> <th> CropDamageAmt.Sum </th> <th> CropDamageAmt.Mean </th> <th> CropDamageAmt.Median </th> <th> CropDamageAmt.Min </th> <th> CropDamageAmt.Max </th>  </tr>
-  <tr> <td align="right"> 1 </td> <td> Flooding </td> <td align="right"> 35599 </td> <td align="right"> 11701327150.00 </td> <td align="right"> 328698.20 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5000000000.00 </td> </tr>
-  <tr> <td align="right"> 2 </td> <td> Hurricane </td> <td align="right"> 114 </td> <td align="right"> 5333117800.00 </td> <td align="right"> 46781735.09 </td> <td align="right"> 2240000.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1510000000.00 </td> </tr>
-  <tr> <td align="right"> 3 </td> <td> Wintery Mix </td> <td align="right"> 21063 </td> <td align="right"> 5203007900.00 </td> <td align="right"> 247021.22 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 5000000000.00 </td> </tr>
-  <tr> <td align="right"> 4 </td> <td> Hail </td> <td align="right"> 80178 </td> <td align="right"> 2029417950.00 </td> <td align="right"> 25311.41 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 70000000.00 </td> </tr>
-  <tr> <td align="right"> 5 </td> <td> Wind </td> <td align="right"> 102195 </td> <td align="right"> 1846417650.00 </td> <td align="right"> 18067.59 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 175000000.00 </td> </tr>
-  <tr> <td align="right"> 6 </td> <td> Drought </td> <td align="right"> 1401 </td> <td align="right"> 1652746000.00 </td> <td align="right"> 1179690.22 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 344000000.00 </td> </tr>
-  <tr> <td align="right"> 7 </td> <td> Cold </td> <td align="right"> 2351 </td> <td align="right"> 935231000.00 </td> <td align="right"> 397801.36 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 286000000.00 </td> </tr>
-  <tr> <td align="right"> 8 </td> <td> Heat </td> <td align="right"> 1339 </td> <td align="right"> 493285000.00 </td> <td align="right"> 368398.06 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 492400000.00 </td> </tr>
-  <tr> <td align="right"> 9 </td> <td> Tropical Storm </td> <td align="right"> 421 </td> <td align="right"> 468261000.00 </td> <td align="right"> 1112258.91 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 101500000.00 </td> </tr>
-  <tr> <td align="right"> 10 </td> <td> Tornado/Waterspout </td> <td align="right"> 12823 </td> <td align="right"> 353383710.00 </td> <td align="right"> 27558.58 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 70000000.00 </td> </tr>
-  <tr> <td align="right"> 11 </td> <td> Fire </td> <td align="right"> 1824 </td> <td align="right"> 285822100.00 </td> <td align="right"> 156700.71 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 80000000.00 </td> </tr>
-  <tr> <td align="right"> 12 </td> <td> Rain </td> <td align="right"> 5269 </td> <td align="right"> 126948800.00 </td> <td align="right"> 24093.53 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 50000000.00 </td> </tr>
-  <tr> <td align="right"> 13 </td> <td> Blizzard </td> <td align="right"> 1742 </td> <td align="right"> 112060000.00 </td> <td align="right"> 64328.36 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 50000000.00 </td> </tr>
-  <tr> <td align="right"> 14 </td> <td> Thunderstorm </td> <td align="right"> 5819 </td> <td align="right"> 46059000.00 </td> <td align="right"> 7915.28 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 26000000.00 </td> </tr>
-  <tr> <td align="right"> 15 </td> <td> Landslide </td> <td align="right"> 320 </td> <td align="right"> 20017000.00 </td> <td align="right"> 62553.12 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 20000000.00 </td> </tr>
-  <tr> <td align="right"> 16 </td> <td> Lightning </td> <td align="right"> 4168 </td> <td align="right"> 5512150.00 </td> <td align="right"> 1322.49 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 3000000.00 </td> </tr>
-  <tr> <td align="right"> 17 </td> <td> Dust Storm </td> <td align="right"> 254 </td> <td align="right"> 2850000.00 </td> <td align="right"> 11220.47 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 1500000.00 </td> </tr>
-  <tr> <td align="right"> 18 </td> <td> Coastal Flooding </td> <td align="right"> 1073 </td> <td align="right"> 911000.00 </td> <td align="right"> 849.02 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 750000.00 </td> </tr>
-  <tr> <td align="right"> 19 </td> <td> Tsunami </td> <td align="right">  19 </td> <td align="right"> 20000.00 </td> <td align="right"> 1052.63 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 20000.00 </td> </tr>
-  <tr> <td align="right"> 20 </td> <td> Avalanche </td> <td align="right"> 154 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> <td align="right"> 0.00 </td> </tr>
+  <tr> <td align="right"> 1 </td> <td> Flooding </td> <td align="right"> 35599 </td> <td align="right"> 11701 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 5000 </td> </tr>
+  <tr> <td align="right"> 2 </td> <td> Hurricane </td> <td align="right"> 114 </td> <td align="right"> 5333 </td> <td align="right"> 47 </td> <td align="right"> 2 </td> <td align="right"> 0 </td> <td align="right"> 1510 </td> </tr>
+  <tr> <td align="right"> 3 </td> <td> Wintery Mix </td> <td align="right"> 21063 </td> <td align="right"> 5203 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 5000 </td> </tr>
+  <tr> <td align="right"> 4 </td> <td> Hail </td> <td align="right"> 80178 </td> <td align="right"> 2029 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 70 </td> </tr>
+  <tr> <td align="right"> 5 </td> <td> Wind </td> <td align="right"> 102195 </td> <td align="right"> 1846 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 175 </td> </tr>
+  <tr> <td align="right"> 6 </td> <td> Drought </td> <td align="right"> 1401 </td> <td align="right"> 1653 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 344 </td> </tr>
+  <tr> <td align="right"> 7 </td> <td> Cold </td> <td align="right"> 2351 </td> <td align="right"> 935 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 286 </td> </tr>
+  <tr> <td align="right"> 8 </td> <td> Heat </td> <td align="right"> 1339 </td> <td align="right"> 493 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 492 </td> </tr>
+  <tr> <td align="right"> 9 </td> <td> Tropical Storm </td> <td align="right"> 421 </td> <td align="right"> 468 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 102 </td> </tr>
+  <tr> <td align="right"> 10 </td> <td> Tornado/Waterspout </td> <td align="right"> 12823 </td> <td align="right"> 353 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 70 </td> </tr>
+  <tr> <td align="right"> 11 </td> <td> Fire </td> <td align="right"> 1824 </td> <td align="right"> 286 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 80 </td> </tr>
+  <tr> <td align="right"> 12 </td> <td> Rain </td> <td align="right"> 5269 </td> <td align="right"> 127 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 50 </td> </tr>
+  <tr> <td align="right"> 13 </td> <td> Blizzard </td> <td align="right"> 1742 </td> <td align="right"> 112 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 50 </td> </tr>
+  <tr> <td align="right"> 14 </td> <td> Thunderstorm </td> <td align="right"> 5819 </td> <td align="right"> 46 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 26 </td> </tr>
+  <tr> <td align="right"> 15 </td> <td> Landslide </td> <td align="right"> 320 </td> <td align="right"> 20 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 20 </td> </tr>
+  <tr> <td align="right"> 16 </td> <td> Lightning </td> <td align="right"> 4168 </td> <td align="right"> 6 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 3 </td> </tr>
+  <tr> <td align="right"> 17 </td> <td> Dust Storm </td> <td align="right"> 254 </td> <td align="right"> 3 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 2 </td> </tr>
+  <tr> <td align="right"> 18 </td> <td> Coastal Flooding </td> <td align="right"> 1073 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1 </td> </tr>
+  <tr> <td align="right"> 19 </td> <td> Tsunami </td> <td align="right"> 19 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> </tr>
+  <tr> <td align="right"> 20 </td> <td> Avalanche </td> <td align="right"> 154 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> </tr>
    </table>
 
 
@@ -673,7 +670,7 @@ https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Event
 
 
 #### EVTYPE Grouping Table
-The mapping table needs to be extracted from the HTML/PDF and created locally to reproduce the results.
+The mapping table needs to be extracted from the HTML/PDF and created locally to reproduce this analysis.
 
 
 ```r
@@ -681,7 +678,7 @@ print(xtable(envTypeMapping) ,  type="html")
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Wed Nov 18 13:41:16 2015 -->
+<!-- Wed Nov 18 20:10:17 2015 -->
 <table border=1>
 <tr> <th>  </th> <th> ENVTYPE </th> <th> EnvTypeGroup </th>  </tr>
   <tr> <td align="right"> 1 </td> <td> AVALANCE </td> <td> Avalanche </td> </tr>
