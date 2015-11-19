@@ -33,7 +33,7 @@ For property damages, hurricanes, tornados, and flooding are the most expensive 
 
 ### Data Processing
 
-#### Load Data
+####  Load Data 
 
 ```{r load_packages, echo = TRUE, message = FALSE}
 library(RCurl)
@@ -71,7 +71,7 @@ head(sd, 1)
 
 #### Clean/Preprocess Data
 
-##### Dates
+##### <span style="color:blue">Dates </span>
 
 lubridate was used to convert the dates that are factors into date fields so that date parts such as year could be used in the figures.
 
@@ -82,7 +82,7 @@ sd$END_DATE <- mdy_hms(sd$END_DATE)
 ```
 
 
-##### EVTYPE Code Groupings 
+##### <span style="color:blue"> EVTYPE Code Groupings </span>
 
 There are 985 unique EVTYPE codes, many of which are very similar. Rankings using this EVTYPE as it stands would be too disaggregated to be useful.
 
@@ -100,7 +100,7 @@ sd <- sqldf(
 ```
 
 
-##### Duplicates 
+##### <span style="color:blue"> Duplicates  </span>
 
 This section checks for duplicates and determines if the REFNUM identifies a unique row. Removed records that were exactly the same in all fields so that only 1 record out of the multiples remained in the file. 
 
@@ -124,31 +124,31 @@ sd <- sqldf(
 # sd1 <- sd[!duplicated(sd),] 
 ```
 
-##### Economic Damage Fields
+##### <span style="color:blue"> Economic Damage Fields </span>
 
-The PROPDMG field is the numerical component of the property damage and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows before dividing by 1,000,000: 
+The PROPDMG field is the numerical component of the property damage and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows before dividing by 1,000,000 in order to present the amounts consistently in millions: 
 
- * Bb = billions
- * Mm = millions 
- * Kk = thousands
- * Hh = hundreds
+ * Bb = 1,000,000,000
+ * Mm = 1,000,000,
+ * Kk = 1,000
+ * Hh = 100
  * ?  = 0
- * anything else = millions
+ * anything else = 1,000,000
  
-The CROPDMG field is the numerical component of the crop damage and the CROPDMGEXP is the units, however, the units field is also dirty. The numerical field was multiplied as follows before dividing by 1,000,000: 
+The CROPDMG field is the numerical component of the crop damage and the CROPDMGEXP is the units, however, the units field is also dirty. The numerical field was multiplied as follows before dividing by 1,000,000 in order to present the amounts consistently in millions: 
 
- * Bb = billions
- * Mm = millions 
- * Kk = thousands
- * Hh = hundreds
+ * Bb = 1,000,000,000
+ * Mm = 1,000,000
+ * Kk = 1,000
+ * Hh = 100
  * ?  = 0
- * anything else = millions
+ * anything else = 1,000,000
 
 Another field was added to indicate the reliability of the numbers. The assumption about "anything else"  and "?" was coded as low reliability. 
 
 The REMARKS have cost numbers that do not always match the cost fields for that record. A future analysis should compare these fields and either adjust the  reliability and/or update the damage numbers.
 
-The events in this file range from 1950 to 2011. To truely be comparable and understandable to the modern audience, the damage dollar amounts should be adjusted using an appropriate price index into current dollars in order to properly rank the financial impact of each event. This was deemed out of scope for our assignment.
+The events in this file range from 1950 to 2011, however, the documentation states it was best documented from 1996 on. To truely be comparable and understandable to the modern audience, the damage dollar amounts should be adjusted using an appropriate price index into current dollars in order to properly rank the financial impact of each event. This was deemed out of scope for our assignment.
 
 
 ```{r fix_amts, echo = TRUE}
@@ -218,7 +218,7 @@ pop_fatalities <-
 The fatalities from 1950 - 2011 are ranked as follows:
 
 ```{r FatalitiesTable, echo = TRUE,  results="asis"}
-fatalities <- xtable( prettyNum(pop_fatalities[pop_fatalities$Fatalities.Count != 0,], big.mark = ",", preserve.width = "none"), digits =  c(0,0,0,0,0,0,0,0) )
+fatalities <- xtable( pop_fatalities[pop_fatalities$Fatalities.Count != 0,], digits =  c(0,0,0,0,0,0,0,0) )
 print(fatalities, type="html", include.rownames=FALSE)
 ```
 Fatalities Table
@@ -272,7 +272,7 @@ The injuries from  1950 - 2011 are ranked as follows:
 
 ```{r InjuriesTable, echo = TRUE,  results="asis"}
 
-injuries <- xtable(prettyNum(pop_injuries[pop_injuries$Injuries.Count != 0,], big.mark = ",", preserve.width = "none"), digits = c(0,0,0,0,0,0,0,0) )
+injuries <- xtable(pop_injuries[pop_injuries$Injuries.Count != 0,], digits = c(0,0,0,0,0,0,0,0) )
 print(injuries, type="html", include.rownames=FALSE)
 
 ```
@@ -366,21 +366,21 @@ cost_CropDamage_High <-
 Total property damages from 1950 - 2011 (assuming millions for ambiguous cost units) are as follows:
 
 ```{r PropertyDamageTable, echo = TRUE,  results="asis"}
-PropertyDamage <- xtable(prettyNum(cost_PropertyDamage[cost_PropertyDamage$PropertyDamageAmt.Sum != 0,], big.mark = ",", preserve.width = "none"), digits = c(0,0,0,0,0,0,0,0) ) 
+PropertyDamage <- xtable(cost_PropertyDamage[cost_PropertyDamage$PropertyDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
 print(PropertyDamage, type="html", include.rownames=FALSE)
 ```
 
 Retaining only the records with high reliabiltiy cost estimates doesn't signnificantly change the relative rankings on property damage: 
 
 ```{r ReliablePropertyDamageTable, echo = TRUE,  results="asis"}
-PropertyDamageHigh <- xtable(prettyNum(cost_PropertyDamage_High[cost_PropertyDamage_High$PropertyDamageAmt.Sum != 0,], big.mark = ",", preserve.width = "none"), digits = c(0,0,0,0,0,0,0,0) )
+PropertyDamageHigh <- xtable(cost_PropertyDamage_High[cost_PropertyDamage_High$PropertyDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) )
 print(PropertyDamageHigh, type="html", include.rownames=FALSE)
 ```
 
 Total crop damages from 1950 - 2011 (assuming millions for ambiguous cost units) are as follows:
 
 ```{r CropDamageTable, echo = TRUE,  results="asis"}
-CropDamage <- xtable(prettyNum(cost_CropDamage[cost_CropDamage$CropDamageAmt.Sum != 0,], big.mark = ",", preserve.width = "none"), digits = c(0,0,0,0,0,0,0,0) ) 
+CropDamage <- xtable(cost_CropDamage[cost_CropDamage$CropDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
 print(CropDamage, type="html", include.rownames=FALSE)
 ```
 
