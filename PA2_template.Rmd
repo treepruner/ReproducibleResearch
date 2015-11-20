@@ -11,7 +11,9 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)(cache=TRUE)(tidy = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+                (cache=TRUE)
+                        (tidy = FALSE)
 
 ```
 
@@ -27,9 +29,9 @@ The most fatalities occur due to tornados. Heat is the second most prevelant cau
 
 More injuries are incurred as a result of tornados more than any other event group.
 
-The greatest economic consequences are more difficult to determine due to the inconsistency of the cost unit coding. If ambiguous units are assumed to be in millions, extremes of water- drought and flooding are each more than twice as expensive as the next event group in the crop damage rankings.
+The greatest economic consequences are more difficult to determine due to the inconsistency of the cost unit coding. If ambiguous units are assumed to be in millions, extremes of water- drought and flooding, with drought being more than twice as expensive as flooding in the crop damage rankings.
 
-For property damages, hurricanes, tornados, and flooding are the most expensive event groups.
+For property damages, hurricanes, flooding and coastal flooding are the most expensive event groups.
 
 
 ### Data Processing
@@ -420,11 +422,11 @@ The most fatalities occur due to tornados. Heat is the second most prevelant cau
 
 More injuries are incurred as a result of tornados more than any other event group.
 
-The greatest economic consequences are more difficult to determine due to the inconsistency of the cost unit coding. If ambiguous units are assumed to be in millions, extremes of water- drought and flooding are each more than twice as expensive as the next event group in the crop damage rankings.
+The greatest economic consequences are more difficult to determine due to the inconsistency of the cost unit coding. If ambiguous units are assumed to be in millions, extremes of water- drought and flooding, with drought being more than twice as expensive as flooding in the crop damage rankings.
 
-For property damages, hurricanes, tornados, and flooding are the most expensive event groups.
+For property damages, hurricanes, flooding and coastal flooding are the most expensive event groups.
 
-
+Local emergency management personal should allocate resources for early warning systems to allow people to seek shelter before tornados, hurricanes and high wind events to reduce the possibility of injury and death from these events. . 
  
 ### Appendix
 
