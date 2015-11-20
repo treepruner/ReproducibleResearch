@@ -309,7 +309,7 @@ pop_injuries_yr <-
 ```
 
 
-The top Injuries by Event Groups by Year figure shows that the data may be incomplete or have quality issues since several of the high count event groups have no injuries prior to 1990
+
 
 ```{r InjuriesFigure, fig.cap = "Figure 2: Injuries", fig.width = 8, fig.height = 6, echo = TRUE}
 ggplot( data = pop_injuries_yr

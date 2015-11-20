@@ -281,7 +281,7 @@ saveRDS(sd1, &quot;./proj2/sd1.rds&quot;)</code></pre>
 <pre class="r"><code>fatalities &lt;- xtable( pop_fatalities[pop_fatalities$Fatalities.Count != 0,], digits =  c(0,0,0,0,0,0,0,0) )
 print(fatalities, type=&quot;html&quot;, include.rownames=FALSE)</code></pre>
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:05 2015 -->
+<!-- Thu Nov 19 17:07:49 2015 -->
 <table border="1">
 <tr>
 <th>
@@ -893,7 +893,7 @@ Marine Mishap
 <pre class="r"><code>injuries &lt;- xtable(pop_injuries[pop_injuries$Injuries.Count != 0,], digits = c(0,0,0,0,0,0,0,0) )
 print(injuries, type=&quot;html&quot;, include.rownames=FALSE)</code></pre>
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:07 2015 -->
+<!-- Thu Nov 19 17:07:51 2015 -->
 <table border="1">
 <tr>
 <th>
@@ -1502,7 +1502,6 @@ Marine Mishap
                   , Injuries.Count = sum(INJURIES) ) %&gt;%
         arrange(Year) %&gt;%
         filter(EnvTypeGroup %in% c(&quot;Tornado/Waterspout&quot;, &quot;Heat&quot;, &quot;Flooding&quot;, &quot;Wind&quot;, &quot;Wintery Mix&quot;, &quot;Lightning&quot;, &quot;Lighting&quot; ))</code></pre>
-<p>The top Injuries by Event Groups by Year figure shows that the data may be incomplete or have quality issues since several of the high count event groups have no injuries prior to 1990</p>
 <pre class="r"><code>ggplot( data = pop_injuries_yr
         , aes(x = Year
         , y = Injuries.Count, colour = EnvTypeGroup)) +
@@ -1568,7 +1567,7 @@ cost_CropDamage_High &lt;-
 <pre class="r"><code>PropertyDamage &lt;- xtable(cost_PropertyDamage[cost_PropertyDamage$PropertyDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
 print(PropertyDamage, type=&quot;html&quot;, include.rownames=FALSE)</code></pre>
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:11 2015 -->
+<!-- Thu Nov 19 17:07:55 2015 -->
 <table border="1">
 <tr>
 <th>
@@ -2288,7 +2287,7 @@ Heavy Seas
 <pre class="r"><code>PropertyDamageHigh &lt;- xtable(cost_PropertyDamage_High[cost_PropertyDamage_High$PropertyDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) )
 print(PropertyDamageHigh, type=&quot;html&quot;, include.rownames=FALSE)</code></pre>
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:11 2015 -->
+<!-- Thu Nov 19 17:07:55 2015 -->
 <table border="1">
 <tr>
 <th>
@@ -2893,7 +2892,7 @@ Rip Current
 <pre class="r"><code>CropDamage &lt;- xtable(cost_CropDamage[cost_CropDamage$CropDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
 print(CropDamage, type=&quot;html&quot;, include.rownames=FALSE)</code></pre>
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:11 2015 -->
+<!-- Thu Nov 19 17:07:55 2015 -->
 <table border="1">
 <tr>
 <th>
@@ -3383,7 +3382,7 @@ Tsunami
 <pre class="r"><code>CropDamageHigh &lt;- xtable(cost_CropDamage_High[cost_CropDamage$CropDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) ) 
 print(CropDamageHigh, type=&quot;html&quot;, include.rownames=FALSE)</code></pre>
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:11 2015 -->
+<!-- Thu Nov 19 17:07:55 2015 -->
 <table border="1">
 <tr>
 <th>
@@ -3890,7 +3889,7 @@ Avalanche
 <p>The mapping table needs to be extracted from the HTML/PDF and created locally to reproduce this analysis.</p>
 <pre class="r"><code>print(xtable(envTypeMapping) ,  type=&quot;html&quot; , include.rownames=FALSE)                                                     </code></pre>
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:11 2015 -->
+<!-- Thu Nov 19 17:07:55 2015 -->
 <table border="1">
 <tr>
 <th>

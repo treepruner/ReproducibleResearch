@@ -300,7 +300,7 @@ print(fatalities, type="html", include.rownames=FALSE)
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:05 2015 -->
+<!-- Thu Nov 19 17:07:49 2015 -->
 <table border=1>
 <tr> <th> EnvTypeGroup </th> <th> n </th> <th> Fatalities.Count </th> <th> Fatalities.Mean </th> <th> Fatalities.Median </th> <th> Fatalities.Min </th> <th> Fatalities.Max </th>  </tr>
   <tr> <td> Heat </td> <td align="right"> 2760 </td> <td align="right"> 2036 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 99 </td> </tr>
@@ -387,7 +387,7 @@ print(injuries, type="html", include.rownames=FALSE)
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:07 2015 -->
+<!-- Thu Nov 19 17:07:51 2015 -->
 <table border=1>
 <tr> <th> EnvTypeGroup </th> <th> n </th> <th> Injuries.Count </th> <th> Injuries.Mean </th> <th> Injuries.Median </th> <th> Injuries.Min </th> <th> Injuries.Max </th>  </tr>
   <tr> <td> Tornado/Waterspout </td> <td align="right"> 32617 </td> <td align="right"> 20670 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1150 </td> </tr>
@@ -432,7 +432,7 @@ pop_injuries_yr <-
 ```
 
 
-The top Injuries by Event Groups by Year figure shows that the data may be incomplete or have quality issues since several of the high count event groups have no injuries prior to 1990
+
 
 
 ```r
@@ -514,7 +514,7 @@ print(PropertyDamage, type="html", include.rownames=FALSE)
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:11 2015 -->
+<!-- Thu Nov 19 17:07:55 2015 -->
 <table border=1>
 <tr> <th> EnvTypeGroup </th> <th> n </th> <th> PropertyDamageAmt.Sum </th> <th> PropertyDamageAmt.Mean </th> <th> PropertyDamageAmt.Median </th> <th> PropertyDamageAmt.Min_ </th> <th> PropertyDamageAmt.Max </th>  </tr>
   <tr> <td> Hurricane </td> <td align="right"> 273 </td> <td align="right"> 81719 </td> <td align="right"> 299 </td> <td align="right"> 1 </td> <td align="right"> 0 </td> <td align="right"> 16930 </td> </tr>
@@ -559,7 +559,7 @@ print(PropertyDamageHigh, type="html", include.rownames=FALSE)
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:11 2015 -->
+<!-- Thu Nov 19 17:07:55 2015 -->
 <table border=1>
 <tr> <th> EnvTypeGroup </th> <th> n </th> <th> PropertyDamageAmt.Sum </th> <th> PropertyDamageAmt.Mean </th> <th> PropertyDamageAmt.Median </th> <th> PropertyDamageAmt.Min_ </th> <th> PropertyDamageAmt.Max </th>  </tr>
   <tr> <td> Hurricane </td> <td align="right"> 105 </td> <td align="right"> 36472 </td> <td align="right"> 347 </td> <td align="right"> 11 </td> <td align="right"> 0 </td> <td align="right"> 5880 </td> </tr>
@@ -599,7 +599,7 @@ print(CropDamage, type="html", include.rownames=FALSE)
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:11 2015 -->
+<!-- Thu Nov 19 17:07:55 2015 -->
 <table border=1>
 <tr> <th> EnvTypeGroup </th> <th> n_date </th> <th> CropDamageAmt.Sum </th> <th> CropDamageAmt.Mean </th> <th> CropDamageAmt.Median </th> <th> CropDamageAmt.Min </th> <th> CropDamageAmt.Max </th>  </tr>
   <tr> <td> Drought </td> <td align="right"> 2514 </td> <td align="right"> 13368 </td> <td align="right"> 5 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 1000 </td> </tr>
@@ -634,7 +634,7 @@ print(CropDamageHigh, type="html", include.rownames=FALSE)
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:11 2015 -->
+<!-- Thu Nov 19 17:07:55 2015 -->
 <table border=1>
 <tr> <th> EnvTypeGroup </th> <th> n_date </th> <th> CropDamageAmt.Sum </th> <th> CropDamageAmt.Mean </th> <th> CropDamageAmt.Median </th> <th> CropDamageAmt.Min </th> <th> CropDamageAmt.Max </th>  </tr>
   <tr> <td> Flooding </td> <td align="right"> 34976 </td> <td align="right"> 6100 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 0 </td> <td align="right"> 500 </td> </tr>
@@ -694,7 +694,7 @@ print(xtable(envTypeMapping) ,  type="html" , include.rownames=FALSE)
 ```
 
 <!-- html table generated in R 3.1.3 by xtable 1.8-0 package -->
-<!-- Thu Nov 19 16:41:11 2015 -->
+<!-- Thu Nov 19 17:07:55 2015 -->
 <table border=1>
 <tr> <th> ENVTYPE </th> <th> EnvTypeGroup </th>  </tr>
   <tr> <td> AVALANCE </td> <td> Avalanche </td> </tr>
