@@ -11,7 +11,8 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE)(cache=TRUE)(tidy = FALSE)
+
 ```
 
 
@@ -120,7 +121,7 @@ sd <- sqldf(
          from sd s" 
          )
 
-# thes code also works and was actually faster
+# this code also works and was actually faster
 # sd1 <- sd[!duplicated(sd),] 
 ```
 
@@ -128,13 +129,14 @@ sd <- sqldf(
 
 The events in this file range from 1950 to 2011, however, the documentation states it was best documented from 1996 forward. In light of this, the analysis is just including the BGN_DATES from 1996 - 2011. I wasn't able to get the date syntax correct with sqldf, so I'm doing that part with dplyr.
 
-To truely be comparable and understandable to the modern audience, the damage dollar amounts should be adjusted using an appropriate price index into current dollars in order to properly rank the financial impact of each event. This was deemed out of scope for our assignment. 
 
 ```{r filter Years, echo = TRUE}
 sd0 <- sd %>% filter(year(BGN_DATE) >= 1996) 
- 
+
+# save 1996-2011 data  
 saveRDS(sd0, "./proj2/sd0.rds") 
 ``` 
+
 
 
 The PROPDMG field is the numerical component of the property damage and the PROPDMGEXP is the units, however, the units field is dirty. The numerical field was multiplied as follows before dividing by 1,000,000 in order to present the amounts consistently in millions: 
@@ -155,11 +157,11 @@ The CROPDMG field is the numerical component of the crop damage and the CROPDMGE
  * ?  = 0
  * anything else = 1,000,000
 
-Another field was added to indicate the reliability of the numbers. The assumption about "anything else"  and "?" was coded as low reliability. 
+Another field was added to indicate the reliability of the numbers. Records containing  "anything else"  and "?" were coded as low reliability. 
 
 The REMARKS have cost numbers that do not always match the cost fields for that record. A future analysis should compare these fields and either adjust the  reliability and/or update the damage numbers.
 
-
+To truely be comparable and understandable to the modern audience, the damage dollar amounts should be adjusted using an appropriate price index into current dollars in order to properly rank the financial impact of each event. This was deemed out of scope for our assignment. 
 
 ```{r fix_amts, echo = TRUE}
 sd1 <- sqldf( 
@@ -196,19 +198,20 @@ sd1 <- sqldf(
           else 'High'
           end as reliability
         , REMARKS   
-         from sd
+         from sd0
          where REFNUM <> 605943 "          )
 
+# save cleaned subset
 saveRDS(sd1, "./proj2/sd1.rds")
 
 ```         
   
-sd <- readRDS("./proj2/sd.rds")
- 
+
 
  
          
 ### Results by Event Group
+
 
 #### Population Health Statistics by Event Group
 
@@ -229,12 +232,12 @@ pop_fatalities <-
 
 
 The fatalities from 1996 - 2011 are ranked as follows:
-
 ```{r FatalitiesTable, echo = TRUE,  results="asis"}
 fatalities <- xtable( pop_fatalities[pop_fatalities$Fatalities.Count != 0,], digits =  c(0,0,0,0,0,0,0,0) )
 print(fatalities, type="html", include.rownames=FALSE)
 ```
-Fatalities Table
+
+
 
 ```{r fatalities_yr_stats, echo = TRUE}
 pop_fatalities_yr <- 
@@ -258,7 +261,7 @@ ggplot( data = pop_fatalities_yr
         scale_x_continuous(breaks=seq(1996, 2011, 1)) +
         facet_grid(EnvTypeGroup ~ .) +
         geom_line()  + 
-        theme(legend.position = "bottom") +
+        theme(legend.position = "bottom", plot.background = element_rect(fill = "grey")) +
         ggtitle("Figure 1: Fatalities by Event Groups Since 1996")
 ```
 
@@ -280,7 +283,7 @@ pop_injuries <-
 ```
 
 
-The injuries from  1950 - 2011 are ranked as follows:
+The injuries from  1996 - 2011 are ranked as follows:
 
 ```{r InjuriesTable, echo = TRUE,  results="asis"}
 
@@ -288,7 +291,8 @@ injuries <- xtable(pop_injuries[pop_injuries$Injuries.Count != 0,], digits = c(0
 print(injuries, type="html", include.rownames=FALSE)
 
 ```
-Injuries Table
+
+
 
 ```{r injuries_yr_stats, echo = TRUE}
 pop_injuries_yr <- 
@@ -313,9 +317,8 @@ ggplot( data = pop_injuries_yr
         scale_x_continuous(breaks=seq(1996, 2011, 1)) +
         facet_grid(EnvTypeGroup ~ .) +
         geom_line() + 
-        theme(legend.position = "bottom") +
+        theme(legend.position = "bottom", plot.background = element_rect(fill = "grey")) +
         ggtitle("Figure 2: Injuries by Event Groups Since 1996")
-
 ```
 
 
@@ -382,12 +385,14 @@ PropertyDamage <- xtable(cost_PropertyDamage[cost_PropertyDamage$PropertyDamageA
 print(PropertyDamage, type="html", include.rownames=FALSE)
 ```
 
+
 Retaining only the records with high reliabiltiy cost estimates doesn't signnificantly change the relative rankings on property damage: 
 
 ```{r ReliablePropertyDamageTable, echo = TRUE,  results="asis"}
 PropertyDamageHigh <- xtable(cost_PropertyDamage_High[cost_PropertyDamage_High$PropertyDamageAmt.Sum != 0,], digits = c(0,0,0,0,0,0,0,0) )
 print(PropertyDamageHigh, type="html", include.rownames=FALSE)
 ```
+
 
 Total crop damages from 1996 - 2011 (assuming millions for ambiguous cost units) are as follows:
 
